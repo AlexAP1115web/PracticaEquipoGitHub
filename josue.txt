@@ -1,1 +1,6 @@
 Mi nombre es Josue 
+Aportación al proyecto:
+- Organización del repositorio.
+- Control de versiones.
+- Revisión de cambios.
+- Coordinación entre integrantes.
