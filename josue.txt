@@ -1,4 +1,4 @@
-Mi nombre es Josue 
+Nombre: Josue 
 Aportación al proyecto:
 - Organización del repositorio.
 - Control de versiones.
