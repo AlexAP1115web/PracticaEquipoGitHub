@@ -6,3 +6,5 @@ Funciones:
 - Agregar colaboradores.
 - Gestionar conflictos.
 - Supervisar commits.
+
+Docente : Haydee Gómez Díaz
