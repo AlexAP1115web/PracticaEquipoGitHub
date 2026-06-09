@@ -1,5 +1,5 @@
 Mi nombre es Dessire 
-
+maestra hayde, hora: 5:47pm
 Actividades:
 - Creación y edición de archivos del proyecto.
 - Participación en el control de versiones mediante Git.
