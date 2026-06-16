@@ -1,0 +1,22 @@
+# Dependencias Node
+node_modules/
+
+# Dependencias Composer
+vendor/
+
+# Logs
+logs/
+*.log
+
+# Archivos subidos
+uploads/
+
+# Variables de entorno
+.env
+
+# VS Code
+.vscode/
+
+# Windows
+Thumbs.db
+Desktop.ini
