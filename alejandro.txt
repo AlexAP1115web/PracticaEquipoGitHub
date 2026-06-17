@@ -1,0 +1,10 @@
+Nombre: Alejandro Pérez Alcántara
+Rol: Administrador del repositorio
+
+Funciones:
+- Crear repositorio.
+- Agregar colaboradores.
+- Gestionar conflictos.
+- Supervisar commits.
+
+Docente : Haydee Gómez Díaz
