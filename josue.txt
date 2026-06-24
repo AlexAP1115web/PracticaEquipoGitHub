@@ -1,0 +1,7 @@
+Nombre: Josue 
+Aportación al proyecto:
+- Organización del repositorio.
+- Control de versiones.
+- Revisión de cambios.
+- Coordinación entre integrantes.
+maestra heidee 09/06/2026
