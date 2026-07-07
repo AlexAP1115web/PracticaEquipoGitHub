@@ -4,21 +4,31 @@ Este documento describe cómo MediCore se alinea con estándares y buenas
 prácticas de seguridad reconocidos internacionalmente, y qué controles
 técnicos ya están implementados en el código como evidencia de cada uno.
 
-## 1. TLS / HTTPS
+## 1. TLS / HTTPS ✅ Implementado y probado en local
 
+- **Estado: activo.** Apache corre con `mod_ssl` habilitado, sirviendo
+  MediCore por `https://localhost/MediCore_medicoAdmin/` con el
+  certificado autofirmado que incluye XAMPP. La redirección automática
+  `http://` → `https://` está **activa** en el `.htaccess` raíz (las
+  reglas `RewriteCond`/`RewriteRule` ya no están comentadas).
 - El sistema detecta automáticamente si la conexión es HTTPS
   (`config.php`, `$secure = isset($_SERVER['HTTPS'])...`) y marca las
-  cookies de sesión como `secure` únicamente en ese caso.
+  cookies de sesión como `secure` únicamente en ese caso — con HTTPS
+  activo, esta protección ya está en efecto.
 - La cookie de sesión usa `SameSite=Lax` (no `Strict`): es necesario para
   que la cookie sobreviva la redirección de vuelta desde Google OAuth2
   (con `Strict` el navegador la bloquea en esa navegación entre sitios).
   `Lax` sigue mitigando CSRF en formularios y peticiones normales.
-- Ya existe un `.htaccess` en la raíz con la regla de redirección
-  HTTP → HTTPS lista (comentada por defecto) y cabeceras de seguridad a
-  nivel servidor (`X-Content-Type-Options`, `X-Frame-Options`,
+- El `.htaccess` raíz también envía cabeceras de seguridad a nivel
+  servidor (`X-Content-Type-Options`, `X-Frame-Options`,
   `Referrer-Policy`) como respaldo de las que ya se envían desde PHP.
+- **Nota:** el navegador muestra una advertencia de certificado no
+  confiable porque es autofirmado (normal y esperado en un entorno de
+  desarrollo local). En un despliegue real de producción, este
+  certificado debe sustituirse por uno emitido por una Autoridad
+  Certificadora reconocida (Let's Encrypt, DigiCert, Sectigo).
 
-**Habilitar HTTPS local (XAMPP) — proceso real:**
+**Cómo se habilitó HTTPS local (XAMPP) — proceso documentado:**
 
 1. Abre el **Panel de Control de XAMPP** → Apache → **Config** →
    `httpd.conf`. Verifica que estén sin `#`:
@@ -161,7 +171,7 @@ el nivel mínimo recomendado para cualquier aplicación:
 | V5 Validación de entradas | Prepared statements contra SQL Injection | ✅ 100% de las consultas con `mysqli` prepared statements |
 | V7 Manejo de errores | Mensajes de error genéricos al usuario final | ✅ Mensajes controlados (ej. "Ocurrió un error al procesar la solicitud") |
 | V7 Logging | Registro de eventos de seguridad relevantes | ✅ `registrarLog()` → `logs/seguridad.log` |
-| V9 Comunicaciones | TLS para datos sensibles en tránsito | ⚠️ Documentado y preparado (`.htaccess`), pendiente de activar en el entorno local/producción |
+| V9 Comunicaciones | TLS para datos sensibles en tránsito | ✅ Activo en local (`https://`, redirección forzada vía `.htaccess`); pendiente sustituir el certificado autofirmado por uno de una CA real en producción |
 | V12 Archivos | Validación de tipo MIME real en subida de archivos | ✅ Validación MIME en `configuracion.php` (foto de perfil) |
 | V14 Configuración | Cabeceras de seguridad HTTP | ✅ `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` (PHP + `.htaccess`) |
 
