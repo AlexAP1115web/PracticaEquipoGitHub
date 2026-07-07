@@ -9,11 +9,35 @@ técnicos ya están implementados en el código como evidencia de cada uno.
 - El sistema detecta automáticamente si la conexión es HTTPS
   (`config.php`, `$secure = isset($_SERVER['HTTPS'])...`) y marca las
   cookies de sesión como `secure` únicamente en ese caso.
-- **Pendiente en producción:** instalar un certificado TLS (por ejemplo
-  Let's Encrypt) en el servidor y forzar la redirección HTTP → HTTPS.
-  En XAMPP local esto se puede simular activando SSL en Apache
-  (`httpd-ssl.conf`) o usando un proxy como ngrok/Cloudflare Tunnel para
-  pruebas con HTTPS real.
+- La cookie de sesión usa `SameSite=Lax` (no `Strict`): es necesario para
+  que la cookie sobreviva la redirección de vuelta desde Google OAuth2
+  (con `Strict` el navegador la bloquea en esa navegación entre sitios).
+  `Lax` sigue mitigando CSRF en formularios y peticiones normales.
+- Ya existe un `.htaccess` en la raíz con la regla de redirección
+  HTTP → HTTPS lista (comentada por defecto) y cabeceras de seguridad a
+  nivel servidor (`X-Content-Type-Options`, `X-Frame-Options`,
+  `Referrer-Policy`) como respaldo de las que ya se envían desde PHP.
+
+**Habilitar HTTPS local (XAMPP) — proceso real:**
+
+1. Abre el **Panel de Control de XAMPP** → Apache → **Config** →
+   `httpd.conf`. Verifica que estén sin `#`:
+   `LoadModule ssl_module modules/mod_ssl.so` y
+   `Include conf/extra/httpd-ssl.conf`.
+2. Abre `httpd-vhosts.conf` (en `conf/extra/`) y agrega un VirtualHost en
+   el puerto 443 apuntando a `C:/xampp/htdocs/MediCore_medicoAdmin` (XAMPP
+   ya trae un certificado autofirmado de prueba en `apache/conf/ssl.crt/`
+   y `ssl.key/`, listo para usarse).
+3. Reinicia Apache desde el Panel de Control.
+4. Entra a `https://localhost/MediCore_medicoAdmin/` — el navegador
+   mostrará una advertencia de certificado no confiable (normal, es
+   autofirmado); acéptala para pruebas locales.
+5. Descomenta las 3 líneas del `.htaccess` raíz para forzar la
+   redirección HTTP → HTTPS.
+6. **En producción real:** sustituir el certificado autofirmado por uno
+   emitido por una Autoridad Certificadora reconocida (Let's Encrypt,
+   DigiCert, Sectigo), que es lo que da la validez pública del candado
+   en el navegador.
 
 ## 2. OWASP Top 10 — mitigaciones ya presentes
 
@@ -46,13 +70,16 @@ para una aplicación de este tamaño:
 
 - Se alinea con la **Ley Federal de Protección de Datos Personales en
   Posesión de los Particulares** (LFPDPPP): minimización de datos,
-  confidencialidad, y próximamente un aviso de privacidad en `home.php`.
+  confidencialidad, y un aviso de privacidad simplificado publicado en
+  `aviso_privacidad.php` (enlazado desde el pie de página de `home.php`).
+- El aviso cubre los 5 elementos mínimos del Art. 22: identidad del
+  responsable, finalidades del tratamiento, mecanismo para conocer el
+  aviso integral, medios para ejercer derechos ARCO, y transferencias de
+  datos (limitadas a los encargados del tratamiento: SendGrid, Twilio y
+  Google, solo para las finalidades ya descritas).
 - El envío de correos (SendGrid) y SMS (Twilio) solo se activa con
   consentimiento implícito del médico/paciente al registrar su contacto
   en el sistema.
-- **Pendiente:** publicar un aviso de privacidad simplificado (Art. 22 del
-  Reglamento) accesible desde `home.php`, indicando responsable,
-  finalidad del tratamiento y mecanismo para ejercer derechos ARCO.
 
 ## 5. Bcrypt para contraseñas
 
@@ -94,7 +121,8 @@ nuevos módulos (Recomendaciones, Catálogo de Enfermedades, Ubicación).
 
 ## 10. Políticas de sesión segura
 
-- Cookies `httponly`, `SameSite=Strict`, `secure` (si HTTPS).
+- Cookies `httponly`, `SameSite=Lax` (ver sección 1: necesario para el
+  flujo de Google OAuth2), `secure` (si HTTPS).
 - Expiración por inactividad (`SESSION_TIMEOUT`).
 - Regeneración de ID de sesión tras login exitoso.
 - Detección de cambio de User-Agent (mitigación básica de secuestro de
@@ -113,6 +141,35 @@ nuevos módulos (Recomendaciones, Catálogo de Enfermedades, Ubicación).
 | Twilio | Teléfono, código OTP | Código de un solo uso, expira en 5 minutos, se marca como usado |
 | Google Maps | Dirección de la sucursal (dato público) | Solo lectura, API key restringida a "Maps Embed API" |
 | OpenWeather | Nombre de ciudad (configurado por el admin, no por el usuario) | Solo lectura, sin datos personales |
+
+## 11. OWASP ASVS — autoevaluación de nivel 1
+
+MediCore no ha pasado por una auditoría externa con herramientas como
+OWASP ZAP, Burp Suite o Nessus (paso 2 del proceso de certificación de
+desarrollos web), pero se autoevaluó contra los controles de
+**OWASP ASVS (Application Security Verification Standard) Nivel 1**,
+el nivel mínimo recomendado para cualquier aplicación:
+
+| Categoría ASVS | Requisito clave | Estado en MediCore |
+|---|---|---|
+| V2 Autenticación | Contraseñas con hash fuerte (Bcrypt/Argon2) | ✅ `password_hash()` (Bcrypt) |
+| V2 Autenticación | Segundo factor disponible | ✅ OTP vía Twilio (opcional, por médico) |
+| V3 Gestión de sesión | Tokens de sesión aleatorios, regenerados tras login | ✅ `session_regenerate_id(true)` |
+| V3 Gestión de sesión | Expiración de sesión por inactividad | ✅ `SESSION_TIMEOUT` (2h) |
+| V4 Control de acceso | Verificación de autorización en cada endpoint sensible | ✅ `verificarSesion()` en todas las páginas privadas |
+| V5 Validación de entradas | Validación/sanitización del lado del servidor | ✅ `limpiar()`, `filter_var(FILTER_VALIDATE_EMAIL)` |
+| V5 Validación de entradas | Prepared statements contra SQL Injection | ✅ 100% de las consultas con `mysqli` prepared statements |
+| V7 Manejo de errores | Mensajes de error genéricos al usuario final | ✅ Mensajes controlados (ej. "Ocurrió un error al procesar la solicitud") |
+| V7 Logging | Registro de eventos de seguridad relevantes | ✅ `registrarLog()` → `logs/seguridad.log` |
+| V9 Comunicaciones | TLS para datos sensibles en tránsito | ⚠️ Documentado y preparado (`.htaccess`), pendiente de activar en el entorno local/producción |
+| V12 Archivos | Validación de tipo MIME real en subida de archivos | ✅ Validación MIME en `configuracion.php` (foto de perfil) |
+| V14 Configuración | Cabeceras de seguridad HTTP | ✅ `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` (PHP + `.htaccess`) |
+
+**Pendiente para una evaluación más profunda:** ejecutar un escaneo
+automatizado real (por ejemplo `OWASP ZAP` en modo *baseline scan* contra
+`http://localhost/MediCore_medicoAdmin/`) y documentar sus hallazgos como
+evidencia adicional; esto requiere instalar la herramienta en el equipo
+local y no se ejecutó como parte de esta entrega.
 
 ## Cómo probar/activar cada integración
 

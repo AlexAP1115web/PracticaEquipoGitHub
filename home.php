@@ -44,7 +44,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['accion']) && $_POST['a
 
     <meta name="description" content="MediCore Professional System - Plataforma clínica integral para gestión médica, expedientes electrónicos y seguimiento de pacientes.">
 
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="assets/style.css?v=<?= time() ?>">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
@@ -746,7 +746,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['accion']) && $_POST['a
 
     <nav class="public-navbar">
         <a href="#inicio" class="public-logo">
-            <img src="Medicore.png" alt="Logo MediCore">
+            <img src="assets/Medicore.png" alt="Logo MediCore">
             <div>
                 <h1>MediCore</h1>
                 <span>Professional System</span>
@@ -815,7 +815,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['accion']) && $_POST['a
                 <div class="preview-card">
                     <div class="preview-top">
                         <div class="preview-brand">
-                            <img src="Medicore.png" alt="MediCore">
+                            <img src="assets/Medicore.png" alt="MediCore">
                             <div>
                                 <strong>Panel Médico</strong><br>
                                 <small>Vista clínica general</small>
@@ -1155,7 +1155,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['accion']) && $_POST['a
         <div class="contact-layout">
 
             <div class="contact-info-home">
-                <img src="Medicore.png" alt="MediCore">
+                <img src="assets/Medicore.png" alt="MediCore">
 
                 <h3>Estamos para ayudarte</h3>
 
@@ -1227,7 +1227,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['accion']) && $_POST['a
     </section>
 
     <footer class="home-footer">
-        <img src="Medicore.png" alt="MediCore">
+        <img src="assets/Medicore.png" alt="MediCore">
 
         <h3>MediCore Professional System</h3>
 
@@ -1242,6 +1242,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['accion']) && $_POST['a
         <p style="color:#dff5e8; font-weight:900;">
             Universidad Tecnológica de Puebla
         </p>
+
+        <p style="margin-top:14px;">
+            <a href="aviso_privacidad.php" style="color:#dff5e8; text-decoration:underline; font-weight:800;">
+                <i class="fas fa-file-shield"></i> Aviso de Privacidad
+            </a>
+        </p>
     </footer>
 
     <div class="modal-overlay" id="modalLogin">
@@ -1254,7 +1260,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['accion']) && $_POST['a
 
             <div class="modal-top">
 
-                <img src="Medicore.png" alt="MediCore">
+                <img src="assets/Medicore.png" alt="MediCore">
 
                 <h3>Acceso Médico</h3>
 

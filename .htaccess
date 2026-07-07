@@ -1,0 +1,36 @@
+# =====================================================
+# MEDICORE PROFESSIONAL SYSTEM
+# CONFIGURACIÓN RAÍZ DE APACHE
+# -----------------------------------------------------
+# Redirección forzada de HTTP -> HTTPS.
+#
+# Está DESACTIVADA por defecto (comentada) porque en un
+# entorno local de XAMPP normalmente no hay un certificado
+# SSL configurado en Apache, y activarla sin haber seguido
+# los pasos de "Habilitar HTTPS local" del SECURITY.md
+# dejaría el sitio inaccesible (bucle de redirección).
+#
+# Para activarla:
+#   1. Habilita SSL en Apache (ver SECURITY.md, sección 1).
+#   2. Quita el "#" de las 3 líneas de RewriteCond/RewriteRule.
+#   3. Reinicia Apache desde el panel de XAMPP.
+# =====================================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # RewriteCond %{HTTPS} off
+    # RewriteCond %{HTTP_HOST} ^localhost [NC]
+    # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# Cabeceras de seguridad adicionales a nivel servidor (respaldo de las
+# que ya se envían desde PHP en config.php)
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin"
+</IfModule>
+
+# Nunca listar el contenido de directorios sin index
+Options -Indexes
