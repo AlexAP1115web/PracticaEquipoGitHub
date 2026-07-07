@@ -1,6 +1,8 @@
 <?php
 include("config.php");
 include("security.php");
+require_once __DIR__ . "/integrations/SendGridMailer.php";
+require_once __DIR__ . "/integrations/GoogleCalendar.php";
 
 verificarSesion();
 
@@ -90,6 +92,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     $plan_entrenamiento = limpiar($_POST['plan_entrenamiento'] ?? '');
 
+    // Catálogo de enfermedades (opcional): no rompe expedientes existentes
+    // que no tengan ninguna enfermedad vinculada todavía.
+    $enfermedad_id = !empty($_POST['enfermedad_id']) ? intval($_POST['enfermedad_id']) : null;
+
+    // Liga de videollamada (Jitsi Meet, sin costo ni API key). Se genera de
+    // forma determinística a partir del paciente y la fecha/hora de la cita,
+    // así que cambia solo si la cita cambia.
+    $video_link = null;
+
+    if (!empty($fecha_cita)) {
+        $hashCita = substr(sha1($paciente_id . $fecha_cita . $hora_cita . 'medicore_salt'), 0, 10);
+        $video_link = "https://meet.jit.si/MediCore-{$paciente_id}-{$hashCita}";
+    }
+
     if ($peso <= 0 || $peso > 500) {
         $mensaje_error = "El peso ingresado no es válido.";
     } elseif ($estatura <= 0 || $estatura > 3) {
@@ -129,12 +145,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         dieta_autorizada = ?,
                         fecha_cita = ?,
                         hora_cita = ?,
-                        plan_entrenamiento = ?
+                        plan_entrenamiento = ?,
+                        enfermedad_id = ?,
+                        video_link = ?
                     WHERE usuario_id = ?
                 ");
 
                 $update->bind_param(
-                    "dddssssssssi",
+                    "dddssssssssisi",
                     $peso,
                     $estatura,
                     $imc,
@@ -146,6 +164,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     $fecha_cita,
                     $hora_cita,
                     $plan_entrenamiento,
+                    $enfermedad_id,
+                    $video_link,
                     $paciente_id
                 );
 
@@ -170,13 +190,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         dieta_autorizada,
                         fecha_cita,
                         hora_cita,
-                        plan_entrenamiento
+                        plan_entrenamiento,
+                        enfermedad_id,
+                        video_link
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ");
 
                 $insert->bind_param(
-                    "idddssssssss",
+                    "idddssssssssis",
                     $paciente_id,
                     $peso,
                     $estatura,
@@ -188,7 +210,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     $dieta_autorizada,
                     $fecha_cita,
                     $hora_cita,
-                    $plan_entrenamiento
+                    $plan_entrenamiento,
+                    $enfermedad_id,
+                    $video_link
                 );
 
                 $insert->execute();
@@ -212,6 +236,38 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $expediente = $stmt_refresh->get_result()->fetch_assoc();
 
             $stmt_refresh->close();
+
+            /* ==================================================
+               NOTIFICACIONES NO BLOQUEANTES (no rompen el guardado
+               del expediente si SendGrid/Calendar fallan o no
+               están configurados)
+            ================================================== */
+
+            if (!empty($fecha_cita) && !empty($paciente['email'])) {
+
+                try {
+                    $htmlCita = "
+                        <div style='font-family:Arial,sans-serif;max-width:520px;margin:auto;'>
+                            <h2 style='color:#00843d;'>MediCore Professional System</h2>
+                            <p>Hola " . htmlspecialchars($paciente['nombre']) . ",</p>
+                            <p>Tu cita médica ha sido confirmada para el <strong>" .
+                                htmlspecialchars(date("d/m/Y", strtotime($fecha_cita))) .
+                                "</strong>" . (!empty($hora_cita) ? " a las <strong>" . htmlspecialchars($hora_cita) . "</strong>" : "") . ".</p>
+                            <p style='color:#64748b;font-size:13px;'>Este es un correo automático de MediCore.</p>
+                        </div>
+                    ";
+
+                    enviarCorreoSendGrid($paciente['email'], $paciente['nombre'], "Confirmación de cita - MediCore", $htmlCita);
+                } catch (Exception $eCorreo) {
+                    registrarLog("No se pudo enviar confirmación de cita por correo: " . $eCorreo->getMessage(), "WARNING");
+                }
+
+                try {
+                    sincronizarCitaConGoogleCalendar($paciente['nombre'], $fecha_cita, $hora_cita, $diagnostico);
+                } catch (Exception $eCal) {
+                    registrarLog("No se pudo sincronizar la cita con Google Calendar: " . $eCal->getMessage(), "WARNING");
+                }
+            }
         } catch (Exception $e) {
 
             registrarLog("Error expediente: " . $e->getMessage(), "CRITICAL");
@@ -229,6 +285,13 @@ $dietas = [
     "Dieta para Diabéticos",
     "Otra"
 ];
+
+/* ======================================================
+   CATÁLOGO DE ENFERMEDADES (para el selector opcional)
+====================================================== */
+
+$resultadoEnfermedades = $conexion->query("SELECT id, nombre FROM enfermedades ORDER BY nombre ASC");
+$enfermedadesCatalogo = $resultadoEnfermedades ? $resultadoEnfermedades->fetch_all(MYSQLI_ASSOC) : [];
 ?>
 
 <!DOCTYPE html>
@@ -444,6 +507,20 @@ $dietas = [
                         <?php endforeach; ?>
                     </select>
 
+                    <label>Tipo de Enfermedad (catálogo, opcional)</label>
+
+                    <select name="enfermedad_id">
+                        <option value="">-- Ninguna / no aplica --</option>
+
+                        <?php foreach ($enfermedadesCatalogo as $enf): ?>
+                            <option
+                                value="<?= (int)$enf['id'] ?>"
+                                <?= (isset($expediente['enfermedad_id']) && (int)$expediente['enfermedad_id'] === (int)$enf['id']) ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($enf['nombre']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+
                     <label>Receta y Plan Alimenticio</label>
 
                     <textarea
@@ -512,6 +589,27 @@ $dietas = [
                         </div>
 
                     </div>
+
+                    <?php if (!empty($expediente['video_link'])): ?>
+                        <div class="medical-note" data-html2canvas-ignore="true">
+                            <strong>
+                                <i class="fas fa-video"></i>
+                                Consulta por videollamada
+                            </strong>
+                            <p style="margin:8px 0;">
+                                Se generó una sala de videollamada para la cita programada. Compártela con el paciente
+                                y usa este mismo botón para entrar tú también.
+                            </p>
+                            <a
+                                href="<?= htmlspecialchars($expediente['video_link']) ?>"
+                                target="_blank"
+                                rel="noopener"
+                                class="btn-success">
+                                <i class="fas fa-video"></i>
+                                Iniciar videollamada
+                            </a>
+                        </div>
+                    <?php endif; ?>
 
                     <div class="form-actions" data-html2canvas-ignore="true">
 

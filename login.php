@@ -1,6 +1,7 @@
 <?php
 include("config.php");
 require_once "security.php";
+require_once __DIR__ . "/integrations/TwilioOTP.php";
 
 /* ======================================================
    LIMPIAR SESIÓN SI VIENE DE EXPIRACIÓN / SEGURIDAD
@@ -123,6 +124,42 @@ if (isset($_POST['login']) && empty($error)) {
 
             if (password_verify($password, $medico['password'])) {
 
+                $_SESSION['login_attempts'] = 0;
+                $_SESSION['lockout_time'] = 0;
+
+                /* ==========================================
+                   SEGUNDO FACTOR (OTP vía Twilio) - OPCIONAL
+                   Solo se activa si OTP_ENABLED=true en .env Y
+                   el médico tiene teléfono registrado. Si no,
+                   el login continúa exactamente como antes.
+                ========================================== */
+
+                if (otpHabilitado() && !empty($medico['telefono'])) {
+
+                    $codigo = generarCodigoOTP();
+                    $expiraOtp = date("Y-m-d H:i:s", time() + 300); // 5 minutos
+
+                    $stmtOtp = $conexion->prepare("
+                        INSERT INTO otp_codes (medico_id, codigo, expira)
+                        VALUES (?, ?, ?)
+                    ");
+                    $stmtOtp->bind_param("iss", $medico['id'], $codigo, $expiraOtp);
+                    $stmtOtp->execute();
+                    $stmtOtp->close();
+
+                    enviarOTPTwilio($medico['telefono'], $codigo);
+
+                    // Sesión "pre-autenticada": aún NO se marca $_SESSION['medico'],
+                    // por lo que verificarSesion() seguirá bloqueando el acceso
+                    // hasta que se valide el código en otp_verificar.php.
+                    $_SESSION['otp_medico_pendiente'] = $medico['id'];
+                    $_SESSION['otp_nombre_pendiente'] = $medico['nombre'];
+
+                    registrarLog("OTP enviado para segundo factor: " . $correo, "INFO");
+
+                    redirigir("otp_verificar.php");
+                }
+
                 session_regenerate_id(true);
 
                 $_SESSION['medico'] = $medico['id'];
@@ -130,9 +167,6 @@ if (isset($_POST['login']) && empty($error)) {
                 $_SESSION['nombre_medico'] = $medico['nombre'];
                 $_SESSION['ultimo_acceso'] = time();
                 $_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
-
-                $_SESSION['login_attempts'] = 0;
-                $_SESSION['lockout_time'] = 0;
 
                 $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 
@@ -564,6 +598,57 @@ if (isset($_POST['login']) && empty($error)) {
         }
 
         /* ======================================================
+           GOOGLE OAUTH2
+        ====================================================== */
+
+        .oauth-divider {
+            text-align: center;
+            color: var(--gray);
+            font-size: 13px;
+            margin: 22px 0 16px;
+            position: relative;
+        }
+
+        .oauth-divider::before,
+        .oauth-divider::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            width: 38%;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .oauth-divider::before { left: 0; }
+        .oauth-divider::after { right: 0; }
+
+        .btn-google {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 14px;
+            border-radius: 14px;
+            border: 2px solid var(--border);
+            background: white;
+            color: var(--navy);
+            font-weight: 700;
+            font-size: 14px;
+            text-decoration: none;
+            transition: .3s;
+        }
+
+        .btn-google:hover {
+            border-color: var(--primary);
+            background: var(--light);
+        }
+
+        .btn-google i {
+            color: #ea4335;
+        }
+
+        /* ======================================================
            FOOTER
         ====================================================== */
 
@@ -728,13 +813,21 @@ if (isset($_POST['login']) && empty($error)) {
 
             <div class="extra">
 
-                <a href="#">
+                <a href="recuperar_password.php">
                     ¿Olvidaste tu contraseña?
                 </a>
 
             </div>
 
         </form>
+
+        <?php if (apiHabilitada(['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'])): ?>
+            <div class="oauth-divider">o continúa con</div>
+            <a href="oauth_google.php" class="btn-google">
+                <i class="fab fa-google"></i>
+                Iniciar sesión con Google
+            </a>
+        <?php endif; ?>
 
         <div class="footer">
 

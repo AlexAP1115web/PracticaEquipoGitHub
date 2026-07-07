@@ -77,6 +77,21 @@ $menu_items = [
         'titulo'  => 'Reportes'
     ],
     [
+        'archivo' => 'recomendaciones.php',
+        'icono'   => 'fas fa-notes-medical',
+        'titulo'  => 'Recomendaciones'
+    ],
+    [
+        'archivo' => 'catalogo_enfermedades.php',
+        'icono'   => 'fas fa-disease',
+        'titulo'  => 'Enfermedades'
+    ],
+    [
+        'archivo' => 'ubicacion.php',
+        'icono'   => 'fas fa-map-location-dot',
+        'titulo'  => 'Ubicación'
+    ],
+    [
         'archivo' => 'infografia.php',
         'icono'   => 'fas fa-book-medical',
         'titulo'  => 'Material Educativo'

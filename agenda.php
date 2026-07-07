@@ -15,7 +15,8 @@ $stmt = $conexion->prepare("
         u.email,
         e.fecha_cita,
         e.hora_cita,
-        e.dieta_autorizada
+        e.dieta_autorizada,
+        e.video_link
     FROM usuarios u
     INNER JOIN expedientes e
         ON u.id = e.usuario_id
@@ -340,6 +341,20 @@ foreach ($citas as $cita) {
                                             Abrir Consulta
 
                                         </a>
+
+                                        <?php if (!empty($cita['video_link'])): ?>
+                                            <a
+                                                href="<?= htmlspecialchars($cita['video_link']) ?>"
+                                                target="_blank"
+                                                rel="noopener"
+                                                class="btn-consulta"
+                                                style="margin-top:6px;">
+
+                                                <i class="fas fa-video"></i>
+                                                Videollamada
+
+                                            </a>
+                                        <?php endif; ?>
 
                                     </td>
 

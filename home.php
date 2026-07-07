@@ -1281,6 +1281,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['accion']) && $_POST['a
 
             </form>
 
+            <?php if (function_exists('apiHabilitada') && apiHabilitada(['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'])): ?>
+                <a href="oauth_google.php" class="btn-outline-home" style="width:100%;margin-top:14px;color:#0f172a;border-color:var(--border);background:#fff;">
+                    <i class="fab fa-google"></i>
+                    Iniciar sesión con Google
+                </a>
+            <?php endif; ?>
+
         </div>
 
     </div>

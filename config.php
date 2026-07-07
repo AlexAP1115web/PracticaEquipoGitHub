@@ -7,6 +7,13 @@
 date_default_timezone_set("America/Mexico_City");
 
 /* =====================================================
+   VARIABLES DE ENTORNO Y CONFIGURACIÓN DE APIs EXTERNAS
+   (Google OAuth2/Calendar/Maps, Twilio, SendGrid, OpenWeather)
+===================================================== */
+
+require_once __DIR__ . '/config/apis.php';
+
+/* =====================================================
    LOGS
 ===================================================== */
 
@@ -55,7 +62,13 @@ if (session_status() === PHP_SESSION_NONE) {
         'domain' => '',
         'secure' => $secure,
         'httponly' => true,
-        'samesite' => 'Strict'
+        // "Lax" (no "Strict"): necesario para que la cookie de sesión
+        // sobreviva la redirección de vuelta desde Google OAuth2. Con
+        // "Strict" el navegador bloquea la cookie en esa navegación
+        // entre sitios, se pierde "oauth_state" y el sistema lo
+        // detecta (incorrectamente) como CSRF. "Lax" sigue protegiendo
+        // contra CSRF en formularios/peticiones normales.
+        'samesite' => 'Lax'
     ]);
 
     session_start();
