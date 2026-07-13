@@ -58,14 +58,20 @@ if (!function_exists('enviarOTPTwilio')) {
             CURLOPT_TIMEOUT => 10
         ]);
 
-        curl_exec($ch);
+        $respuesta = curl_exec($ch);
         $codigoHttp = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $errorCurl = curl_error($ch);
         curl_close($ch);
 
         $exito = ($codigoHttp >= 200 && $codigoHttp < 300);
 
         if (function_exists('registrarLog')) {
-            registrarLog("Envío de OTP por Twilio a $telefonoDestino | HTTP $codigoHttp", $exito ? "INFO" : "WARNING");
+            registrarLog(
+                "Envío de OTP por Twilio a $telefonoDestino | HTTP $codigoHttp" .
+                    ($errorCurl ? " | Error cURL: $errorCurl" : "") .
+                    (!$exito ? " | Respuesta: " . substr((string)$respuesta, 0, 300) : ""),
+                $exito ? "INFO" : "WARNING"
+            );
         }
 
         return $exito;

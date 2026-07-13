@@ -45,7 +45,17 @@ if (!function_exists('obtenerClimaActual')) {
 
         $respuesta = curl_exec($ch);
         $codigoHttp = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $errorCurl = curl_error($ch);
         curl_close($ch);
+
+        if (function_exists('registrarLog')) {
+            registrarLog(
+                "OpenWeather -> ciudad=$ciudad | HTTP $codigoHttp" .
+                    ($errorCurl ? " | Error cURL: $errorCurl" : "") .
+                    ($codigoHttp !== 200 ? " | Respuesta: " . substr((string)$respuesta, 0, 200) : ""),
+                $codigoHttp === 200 ? "INFO" : "WARNING"
+            );
+        }
 
         if ($codigoHttp !== 200) {
             return null;

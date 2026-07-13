@@ -147,17 +147,27 @@ if (isset($_POST['login']) && empty($error)) {
                     $stmtOtp->execute();
                     $stmtOtp->close();
 
-                    enviarOTPTwilio($medico['telefono'], $codigo);
+                    $otpEnviado = enviarOTPTwilio($medico['telefono'], $codigo);
 
-                    // Sesión "pre-autenticada": aún NO se marca $_SESSION['medico'],
-                    // por lo que verificarSesion() seguirá bloqueando el acceso
-                    // hasta que se valide el código en otp_verificar.php.
-                    $_SESSION['otp_medico_pendiente'] = $medico['id'];
-                    $_SESSION['otp_nombre_pendiente'] = $medico['nombre'];
+                    // Si Twilio no pudo enviar el SMS (límite diario, número
+                    // no verificado, cuenta caída, etc.) NO dejamos al médico
+                    // atorado esperando un código que nunca va a llegar: se
+                    // deja continuar con un solo factor (correo + contraseña),
+                    // igual que si OTP no estuviera habilitado.
+                    if ($otpEnviado) {
 
-                    registrarLog("OTP enviado para segundo factor: " . $correo, "INFO");
+                        // Sesión "pre-autenticada": aún NO se marca $_SESSION['medico'],
+                        // por lo que verificarSesion() seguirá bloqueando el acceso
+                        // hasta que se valide el código en otp_verificar.php.
+                        $_SESSION['otp_medico_pendiente'] = $medico['id'];
+                        $_SESSION['otp_nombre_pendiente'] = $medico['nombre'];
 
-                    redirigir("otp_verificar.php");
+                        registrarLog("OTP enviado para segundo factor: " . $correo, "INFO");
+
+                        redirigir("otp_verificar.php");
+                    }
+
+                    registrarLog("No se pudo enviar OTP (Twilio falló); se permite acceso con un solo factor: " . $correo, "WARNING");
                 }
 
                 session_regenerate_id(true);
