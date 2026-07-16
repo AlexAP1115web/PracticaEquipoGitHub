@@ -32,10 +32,15 @@ RUN mkdir -p logs uploads/perfiles \
     && chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html
 
-# Railway inyecta el puerto real en la variable de entorno $PORT en TIEMPO
-# DE EJECUCIÓN (no existe todavía durante el build). Por eso la sustitución
-# se hace aquí, en el arranque del contenedor, y no con un RUN.
+# Script de arranque: ajusta el puerto de Apache al que Railway asigne en
+# tiempo de ejecución. Se copia como archivo (no como CMD inline) para
+# evitar problemas de escapado de comillas, y se normalizan saltos de
+# línea por si Windows los guardó como CRLF al hacer commit.
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN sed -i 's/\r$//' /docker-entrypoint.sh \
+    && chmod +x /docker-entrypoint.sh
+
 ENV PORT=8080
 EXPOSE 8080
 
-CMD sh -c "sed -i \"s/80/\${PORT}/g\" /etc/apache2/sites-available/000-default.conf /etc/apache2/ports.conf && apache2-foreground"
+CMD ["/docker-entrypoint.sh"]
