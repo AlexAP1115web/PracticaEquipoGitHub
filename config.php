@@ -89,15 +89,20 @@ if (!headers_sent()) {
    CONEXIÓN MYSQL
 ===================================================== */
 
-$host = "localhost";
-$user = "root";
-$pass = "";
-$db   = "MediCore_db";
+// Usa variables de entorno si existen (necesario para despliegue en la nube:
+// Railway, Render, etc. inyectan sus propias credenciales de MySQL). Si no
+// existen (entorno local con XAMPP), cae en los valores de siempre, por lo
+// que el entorno local sigue funcionando exactamente igual que antes.
+$host = apiConfig('DB_HOST', 'localhost');
+$user = apiConfig('DB_USER', 'root');
+$pass = apiConfig('DB_PASS', '');
+$db   = apiConfig('DB_NAME', 'MediCore_db');
+$puerto = apiConfig('DB_PORT', '3306');
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 try {
-    $conexion = new mysqli($host, $user, $pass, $db);
+    $conexion = new mysqli($host, $user, $pass, $db, (int) $puerto);
     $conexion->set_charset("utf8mb4");
 } catch (Exception $e) {
     registrarLog("Fallo crítico de conexión MySQL: " . $e->getMessage(), "CRITICAL");
