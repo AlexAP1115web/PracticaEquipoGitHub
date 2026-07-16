@@ -9,6 +9,8 @@ RUN apt-get update && apt-get install -y \
         git \
     && docker-php-ext-install mysqli gd mbstring zip \
     && a2enmod rewrite headers \
+    && a2dismod mpm_event 2>/dev/null || true \
+    && a2enmod mpm_prefork \
     && rm -rf /var/lib/apt/lists/*
 
 # Composer (para instalar mpdf/mpdf definido en composer.json)
