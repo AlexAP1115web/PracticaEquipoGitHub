@@ -20,3 +20,6 @@ uploads/
 # Windows
 Thumbs.db
 Desktop.ini
+
+# Script temporal de importacion a Railway (contiene password en texto plano)
+importar_a_railway.php
