@@ -9,13 +9,9 @@ RUN apt-get update && apt-get install -y \
         git \
     && docker-php-ext-install mysqli gd mbstring zip \
     && a2enmod rewrite headers \
-    && rm -f /etc/apache2/mods-enabled/mpm_event.load \
-             /etc/apache2/mods-enabled/mpm_event.conf \
-             /etc/apache2/mods-enabled/mpm_worker.load \
-             /etc/apache2/mods-enabled/mpm_worker.conf \
-             /etc/apache2/mods-enabled/mpm_prefork.load \
-             /etc/apache2/mods-enabled/mpm_prefork.conf \
+    && find /etc/apache2/mods-enabled -name 'mpm_*' -delete \
     && a2enmod mpm_prefork \
+    && apache2ctl -M 2>&1 | grep -i mpm || true \
     && rm -rf /var/lib/apt/lists/*
 
 # Composer (para instalar mpdf/mpdf definido en composer.json)
@@ -38,9 +34,7 @@ RUN mkdir -p logs uploads/perfiles \
     && chmod -R 755 /var/www/html
 
 # Script de arranque: ajusta el puerto de Apache al que Railway asigne en
-# tiempo de ejecución. Se copia como archivo (no como CMD inline) para
-# evitar problemas de escapado de comillas, y se normalizan saltos de
-# línea por si Windows los guardó como CRLF al hacer commit.
+# tiempo de ejecución.
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN sed -i 's/\r$//' /docker-entrypoint.sh \
     && chmod +x /docker-entrypoint.sh
