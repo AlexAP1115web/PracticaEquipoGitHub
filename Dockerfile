@@ -15,6 +15,18 @@ RUN phpaddmod mbstring
 WORKDIR /var/www/html
 COPY . .
 
+# La imagen de shinsenter copia automaticamente .env.example a .env si no
+# encuentra un .env (pensado para apps tipo Laravel). Eso es un problema para
+# MediCore: nuestro .env.example trae DB_HOST=localhost, DB_PORT=3306, etc.
+# (valores para XAMPP local), y config/apis.php esta diseñado para que el
+# .env SIEMPRE sobreescriba las variables de entorno (necesario para Windows).
+# Resultado: en Railway, ese .env "fantasma" pisaba las variables reales de
+# Railway y la app intentaba conectar a "localhost" en vez de a MySQL de
+# Railway. Al crear aqui un .env vacio, la copia automatica nunca se dispara
+# y config/apis.php usa las variables de entorno reales (Railway) sin que
+# nada las sobreescriba.
+RUN touch .env
+
 # Asegura que logs/ y uploads/ existan (Railway usa filesystem efimero:
 # estos datos no persisten entre despliegues, pero si durante la vida
 # del contenedor, suficiente para la demo).
