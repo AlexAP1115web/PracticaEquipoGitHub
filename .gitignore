@@ -11,6 +11,9 @@ logs/
 # Archivos subidos
 uploads/
 
+# Sesiones de PHP (guardadas explicitamente dentro del proyecto)
+sessions_data/
+
 # Variables de entorno
 .env
 

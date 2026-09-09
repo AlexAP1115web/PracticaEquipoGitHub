@@ -27,10 +27,13 @@ COPY . .
 # nada las sobreescriba.
 RUN touch .env
 
-# Asegura que logs/ y uploads/ existan (Railway usa filesystem efimero:
-# estos datos no persisten entre despliegues, pero si durante la vida
-# del contenedor, suficiente para la demo).
-RUN mkdir -p logs uploads/perfiles
+# Asegura que logs/, uploads/ y sessions_data/ existan (Railway usa
+# filesystem efimero: estos datos no persisten entre despliegues, pero si
+# durante la vida del contenedor, suficiente para la demo). sessions_data/
+# es donde config.php guarda las sesiones de PHP explicitamente (ver
+# comentario en config.php: evita depender de /tmp, que en esta imagen
+# puede no ser escribible o quedar fuera de open_basedir).
+RUN mkdir -p logs uploads/perfiles sessions_data && chmod 777 sessions_data
 
 # La propia imagen corre "composer install" automaticamente al arrancar
 # si detecta composer.json (no hace falta un paso explicito para eso).

@@ -4,6 +4,7 @@ node_modules
 vendor
 logs
 uploads
+sessions_data
 .env
 .vscode
 *.md

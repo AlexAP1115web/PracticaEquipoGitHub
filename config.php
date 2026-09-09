@@ -43,6 +43,27 @@ if (!function_exists('registrarLog')) {
    SESIÓN
 ===================================================== */
 
+// Ruta explícita para guardar los archivos de sesión, dentro del propio
+// proyecto. Motivo: en algunos entornos de contenedor (Railway/Docker con
+// la imagen shinsenter/php) la ruta por defecto de sesiones de PHP (/tmp)
+// puede no ser escribible o quedar fuera de open_basedir, lo que hace que
+// session_start() nunca falle de forma visible pero tampoco persista nada:
+// cada petición arranca con una sesión vacía, "csrf_token" nunca coincide,
+// y CUALQUIER formulario (login incluido) se rechaza siempre por CSRF. Al
+// forzar una carpeta propia (que sabemos que sí es escribible, igual que
+// logs/ y uploads/) se evita depender de la configuración de sesiones del
+// servidor. En XAMPP local no cambia nada: simplemente crea esta carpeta
+// dentro del proyecto y sigue funcionando igual que antes.
+$rutaSesiones = __DIR__ . '/sessions_data';
+
+if (!file_exists($rutaSesiones)) {
+    @mkdir($rutaSesiones, 0755, true);
+}
+
+if (is_dir($rutaSesiones) && is_writable($rutaSesiones)) {
+    session_save_path($rutaSesiones);
+}
+
 ini_set('session.use_only_cookies', 1);
 ini_set('session.use_strict_mode', 1);
 ini_set('session.cookie_httponly', 1);
