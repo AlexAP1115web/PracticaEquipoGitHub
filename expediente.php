@@ -306,6 +306,7 @@ $enfermedadesCatalogo = $resultadoEnfermedades ? $resultadoEnfermedades->fetch_a
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<?php include __DIR__ . "/pwa_head.php"; ?>
 </head>
 
 <body>

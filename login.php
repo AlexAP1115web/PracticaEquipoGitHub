@@ -94,7 +94,21 @@ if ($_SESSION['login_attempts'] >= 3) {
 ====================================================== */
 if (isset($_POST['login']) && empty($error)) {
 
-    validarTokenCSRF($_POST['csrf_token'] ?? '');
+    // A diferencia del resto de formularios, aquí no se corta la página
+    // con un 403: si el token ya no sirve (la pestaña llevaba horas
+    // abierta, o se volvió con el botón "atrás" después de cerrar
+    // sesión) se muestra el aviso dentro del propio formulario y el
+    // médico simplemente vuelve a intentarlo.
+    if (!tokenCSRFValido($_POST['csrf_token'] ?? '')) {
+
+        registrarLog("Formulario de acceso vencido; se pide reintentar.", "WARNING");
+
+        $error = "El formulario de acceso expiró. Vuelve a escribir tus datos.";
+        $correo_value = limpiar($_POST['correo'] ?? '');
+    }
+}
+
+if (isset($_POST['login']) && empty($error)) {
 
     $correo = limpiar($_POST['correo'] ?? '');
     $password = $_POST['password'] ?? '';
@@ -178,7 +192,7 @@ if (isset($_POST['login']) && empty($error)) {
                 $_SESSION['ultimo_acceso'] = time();
                 $_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
 
-                $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+                rotarTokenCSRF();
 
                 if (function_exists('registrarLog')) {
 
@@ -693,6 +707,7 @@ if (isset($_POST['login']) && empty($error)) {
         }
     </style>
 
+<?php include __DIR__ . "/pwa_head.php"; ?>
 </head>
 
 <body>

@@ -83,11 +83,15 @@ if ($queryPromedio && $rowPromedio = $queryPromedio->fetch_assoc()) {
 
 $ultimos = [];
 
+$colFecha = columnaFechaAlta();
+$selectFecha = $colFecha ?: "NULL";
+$ordenFecha = $colFecha ? "$colFecha DESC, id DESC" : "id DESC";
+
 $stmtUltimos = $conexion->prepare("
-    SELECT nombre, email, fecha_registro
+    SELECT nombre, email, $selectFecha AS fecha_registro
     FROM usuarios
     WHERE rol = 'paciente'
-    ORDER BY fecha_registro DESC
+    ORDER BY $ordenFecha
     LIMIT 5
 ");
 
@@ -114,6 +118,7 @@ $stmtUltimos->close();
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<?php include __DIR__ . "/pwa_head.php"; ?>
 </head>
 
 <body>

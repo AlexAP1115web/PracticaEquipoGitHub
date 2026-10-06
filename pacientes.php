@@ -9,6 +9,9 @@ verificarSesion();
    Nota: no se usa u.sexo porque tu tabla usuarios no tiene esa columna.
 ====================================================== */
 
+$colFecha = columnaFechaAlta();
+$selectFecha = $colFecha ? "u.$colFecha" : "NULL";
+
 $stmt = $conexion->prepare("
     SELECT
         u.id,
@@ -16,7 +19,7 @@ $stmt = $conexion->prepare("
         u.email,
         u.telefono,
         u.edad,
-        u.fecha_registro,
+        $selectFecha AS fecha_registro,
         e.imc,
         e.fecha_cita,
         e.dieta_autorizada
@@ -59,6 +62,7 @@ foreach ($pacientes as $p) {
 
     <link rel="stylesheet" href="assets/style.css?v=<?= time() ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<?php include __DIR__ . "/pwa_head.php"; ?>
 </head>
 
 <body>

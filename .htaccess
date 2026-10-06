@@ -19,9 +19,13 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-     RewriteCond %{HTTPS} off
-     RewriteCond %{HTTP_HOST} ^localhost [NC]
-     RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+    # ESTAS TRES LÍNEAS DEBEN SEGUIR COMENTADAS mientras Apache no
+    # tenga SSL configurado. Estaban activas (sólo indentadas, sin "#"),
+    # lo que redirigía todo el sitio a https://localhost y lo dejaba
+    # inaccesible en XAMPP.
+    # RewriteCond %{HTTPS} off
+    # RewriteCond %{HTTP_HOST} ^localhost [NC]
+    # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 </IfModule>
 
 # Cabeceras de seguridad adicionales a nivel servidor (respaldo de las

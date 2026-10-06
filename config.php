@@ -43,6 +43,15 @@ if (!function_exists('registrarLog')) {
    SESIÓN
 ===================================================== */
 
+// Tiempo máximo de inactividad (en segundos) antes de cerrar la sesión.
+// Se define aquí una sola vez para que config.php y security.php usen
+// exactamente el mismo valor; antes cada archivo manejaba el suyo (7200
+// contra 14400) y el resultado dependía de cuál función terminaba
+// ejecutándose primero.
+if (!defined('SESSION_TIMEOUT')) {
+    define('SESSION_TIMEOUT', 7200);
+}
+
 // Ruta explícita para guardar los archivos de sesión, dentro del propio
 // proyecto. Motivo: en algunos entornos de contenedor (Railway/Docker con
 // la imagen shinsenter/php) la ruta por defecto de sesiones de PHP (/tmp)
@@ -150,7 +159,7 @@ if (!function_exists('verificarSesion')) {
             exit();
         }
 
-        $tiempo_limite = 7200;
+        $tiempo_limite = SESSION_TIMEOUT;
 
         if (isset($_SESSION['ultimo_acceso'])) {
             $tiempo_inactivo = time() - $_SESSION['ultimo_acceso'];
@@ -282,7 +291,24 @@ if (!function_exists('contarPorEstado')) {
 
 /* =====================================================
    CSRF
+   -----------------------------------------------------
+   El token se rota al iniciar sesión (para cortar la
+   fijación de sesión), pero al rotarlo se guarda el
+   anterior durante unos minutos. Motivo: cuando el token
+   cambia, cualquier formulario que el navegador ya tenía
+   pintado (otra pestaña abierta, el botón "atrás", una
+   página recuperada del caché) se queda con el token
+   viejo y el sistema lo rechazaba como si fuera un
+   ataque. Esos eran los "Intento CSRF detectado" del log
+   de seguridad. Aceptar el token anterior durante una
+   ventana corta resuelve el falso positivo sin abrir la
+   puerta a un CSRF real: un atacante externo sigue sin
+   poder leer ninguno de los dos tokens.
 ===================================================== */
+
+if (!defined('CSRF_GRACIA')) {
+    define('CSRF_GRACIA', 600); // 10 minutos
+}
 
 if (!function_exists('generarTokenCSRF')) {
     function generarTokenCSRF()
@@ -295,25 +321,76 @@ if (!function_exists('generarTokenCSRF')) {
     }
 }
 
+if (!function_exists('rotarTokenCSRF')) {
+    function rotarTokenCSRF()
+    {
+        if (!empty($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token_anterior'] = $_SESSION['csrf_token'];
+            $_SESSION['csrf_token_anterior_expira'] = time() + CSRF_GRACIA;
+        }
+
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+
+        return $_SESSION['csrf_token'];
+    }
+}
+
+if (!function_exists('tokenCSRFValido')) {
+    function tokenCSRFValido($token)
+    {
+        if (empty($token) || !is_string($token)) {
+            return false;
+        }
+
+        if (
+            !empty($_SESSION['csrf_token']) &&
+            hash_equals($_SESSION['csrf_token'], $token)
+        ) {
+            return true;
+        }
+
+        if (
+            !empty($_SESSION['csrf_token_anterior']) &&
+            !empty($_SESSION['csrf_token_anterior_expira']) &&
+            time() < $_SESSION['csrf_token_anterior_expira'] &&
+            hash_equals($_SESSION['csrf_token_anterior'], $token)
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+}
+
 if (!function_exists('validarTokenCSRF')) {
     function validarTokenCSRF($token)
     {
-        if (
-            empty($token) ||
-            !isset($_SESSION['csrf_token']) ||
-            !hash_equals($_SESSION['csrf_token'], $token)
-        ) {
-            registrarLog("Intento CSRF detectado.", "CRITICAL");
-
-            http_response_code(403);
-
-            die("
-                <div style='font-family:Arial;background:#fef2f2;color:#991b1b;padding:30px;margin:40px;border-radius:18px;border:1px solid #fecaca;'>
-                    <h2>⚠ Violación de Seguridad</h2>
-                    <p>La solicitud fue rechazada por protección CSRF.</p>
-                </div>
-            ");
+        if (tokenCSRFValido($token)) {
+            return;
         }
+
+        $pagina = basename($_SERVER['SCRIPT_NAME'] ?? 'desconocida');
+
+        // Se registra como WARNING, no como CRITICAL: la causa habitual es
+        // un formulario vencido, no un ataque.
+        registrarLog("Token CSRF vencido o inválido en $pagina.", "WARNING");
+
+        http_response_code(403);
+
+        die("
+            <div style='font-family:Arial,sans-serif;background:#fffbeb;color:#92400e;padding:30px;margin:40px auto;max-width:560px;border-radius:18px;border:1px solid #fde68a;'>
+                <h2 style='margin:0 0 12px;'>El formulario expiró</h2>
+                <p style='margin:0 0 18px;line-height:1.6;'>
+                    Por seguridad, los formularios de MediCore caducan cuando la sesión
+                    cambia o pasa demasiado tiempo abierta. No se guardó ningún dato:
+                    vuelve a la página y envíalo de nuevo.
+                </p>
+                <a href='javascript:history.back()'
+                   style='display:inline-block;background:#0ea5e9;color:#fff;text-decoration:none;padding:12px 22px;border-radius:12px;font-weight:600;'>
+                    Volver e intentar de nuevo
+                </a>
+            </div>
+        ");
     }
 }
 
@@ -326,5 +403,42 @@ if (!function_exists('redirigir')) {
     {
         header("Location: $ruta");
         exit();
+    }
+}
+
+
+/* =====================================================
+   FECHA DE ALTA DE USUARIOS
+   Según la versión de la base, la tabla usuarios guarda la
+   fecha de alta como "creado_en" o "fecha_registro" (o no la
+   tiene). Se revisa cuál existe para que pacientes.php y
+   reportes.php no truenen si falta alguna.
+===================================================== */
+
+if (!function_exists('columnaFechaAlta')) {
+    function columnaFechaAlta()
+    {
+        global $conexion;
+        static $columna = false;
+
+        if ($columna !== false) {
+            return $columna;
+        }
+
+        $columna = null;
+        $res = $conexion->query("SHOW COLUMNS FROM usuarios");
+        $existentes = [];
+        while ($fila = $res->fetch_assoc()) {
+            $existentes[] = $fila['Field'];
+        }
+
+        foreach (['creado_en', 'fecha_registro'] as $candidata) {
+            if (in_array($candidata, $existentes, true)) {
+                $columna = $candidata;
+                break;
+            }
+        }
+
+        return $columna;
     }
 }

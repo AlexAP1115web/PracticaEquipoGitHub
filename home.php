@@ -1,5 +1,6 @@
 <?php
 include("config.php");
+require_once "security.php";
 
 $mensaje_alerta = "";
 
@@ -740,6 +741,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['accion']) && $_POST['a
             }
         }
     </style>
+<?php include __DIR__ . "/pwa_head.php"; ?>
 </head>
 
 <body class="home-body">

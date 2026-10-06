@@ -56,6 +56,7 @@ $enfermedades = $resultado ? $resultado->fetch_all(MYSQLI_ASSOC) : [];
     <title>Catálogo de Enfermedades | MediCore</title>
     <link rel="stylesheet" href="assets/style.css?v=<?= time() ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<?php include __DIR__ . "/pwa_head.php"; ?>
 </head>
 <body>
 

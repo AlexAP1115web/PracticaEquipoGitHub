@@ -125,6 +125,7 @@
             margin-top: 30px;
         }
     </style>
+<?php include __DIR__ . "/pwa_head.php"; ?>
 </head>
 
 <body>

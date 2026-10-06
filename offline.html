@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1E7D3C">
+<title>MediCore | Sin conexión</title>
+<style>
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+         font-family: "Segoe UI", Arial, sans-serif; background: #F6FAF7; color: #12283F; padding: 24px; box-sizing: border-box; }
+  .caja { background: #fff; border-radius: 18px; padding: 36px 28px; max-width: 420px; text-align: center;
+          box-shadow: 0 10px 30px rgba(18, 40, 63, .08); }
+  img { width: 96px; height: 96px; }
+  h1 { font-size: 1.5rem; margin: 16px 0 8px; color: #1E7D3C; }
+  p { line-height: 1.5; color: #4a5a6a; }
+  button { margin-top: 12px; padding: 12px 26px; border: 0; border-radius: 999px; background: #1E7D3C;
+           color: #fff; font-weight: 700; font-size: 1rem; cursor: pointer; }
+</style>
+</head>
+<body>
+  <div class="caja">
+    <img src="assets/icons/icon-192.png" alt="MediCore">
+    <h1>Sin conexión</h1>
+    <p>MediCore necesita internet para mostrar expedientes, citas y reportes, porque esos datos viven en el servidor y no se guardan en el dispositivo por seguridad.</p>
+    <p>Revisa tu conexión y vuelve a intentarlo.</p>
+    <button onclick="location.reload()">Reintentar</button>
+  </div>
+</body>
+</html>

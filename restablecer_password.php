@@ -109,6 +109,7 @@ if ($tokenValido && $_SERVER['REQUEST_METHOD'] === 'POST') {
         .alerta.error { background:#fef2f2; color:#991b1b; border:1px solid #fecaca; }
         .volver { display:block; text-align:center; margin-top:20px; color:#00843d; font-weight:600; text-decoration:none; font-size:14px; }
     </style>
+<?php include __DIR__ . "/pwa_head.php"; ?>
 </head>
 <body>
     <div class="box">

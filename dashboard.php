@@ -8,36 +8,44 @@ verificarSesion();
    OBTENER ID DEL MÉDICO
 ====================================================== */
 
-$id_medico =
+$id_medico = (int) (
     $_SESSION['medico_id']
     ?? $_SESSION['medico']
     ?? $_SESSION['id']
-    ?? 1;
+    ?? 0
+);
 
 /* ======================================================
    OBTENER DATOS DEL MÉDICO
 ====================================================== */
 
-$stmt_medico = $conexion->prepare("
-    SELECT nombre
-    FROM medicos
-    WHERE id = ?
-    OR correo = ?
-");
+// Antes esta consulta hacía "WHERE id = ? OR correo = ?" pasando el
+// mismo valor como texto a las dos columnas. Comparar la columna id
+// (INT) contra un correo hace que MySQL lo convierta a 0, así que la
+// mitad de la condición nunca servía de nada. El id del médico ya se
+// guarda en la sesión al iniciar sesión, así que basta con buscarlo.
+$nombre_medico = $_SESSION['nombre_medico'] ?? 'Doctor';
 
-$id_str = (string)$id_medico;
+if ($id_medico > 0) {
 
-$stmt_medico->bind_param("ss", $id_str, $id_str);
-$stmt_medico->execute();
+    $stmt_medico = $conexion->prepare("
+        SELECT nombre
+        FROM medicos
+        WHERE id = ?
+        LIMIT 1
+    ");
 
-$resultado = $stmt_medico->get_result();
+    $stmt_medico->bind_param("i", $id_medico);
+    $stmt_medico->execute();
 
-$nombre_medico =
-    ($resultado->num_rows > 0)
-    ? $resultado->fetch_assoc()['nombre']
-    : 'Doctor';
+    $datos_medico = $stmt_medico->get_result()->fetch_assoc();
 
-$stmt_medico->close();
+    if (!empty($datos_medico['nombre'])) {
+        $nombre_medico = $datos_medico['nombre'];
+    }
+
+    $stmt_medico->close();
+}
 
 /* ======================================================
    ESTADÍSTICAS
@@ -97,6 +105,7 @@ $query_recientes = $conexion->query("
         rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+<?php include __DIR__ . "/pwa_head.php"; ?>
 </head>
 
 <body>
