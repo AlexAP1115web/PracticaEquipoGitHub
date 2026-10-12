@@ -202,7 +202,7 @@ foreach ($pacientes as $p) {
                                         <?= htmlspecialchars($p['telefono'] ?? 'No registrado') ?>
                                     </td>
 
-                                    <td>
+                                    <td class="edad">
                                         <?= !empty($p['edad']) ? intval($p['edad']) . ' años' : '—' ?>
                                     </td>
 

@@ -3,8 +3,12 @@ include("config.php");
 include("security.php");
 require_once __DIR__ . "/integrations/SendGridMailer.php";
 require_once __DIR__ . "/integrations/GoogleCalendar.php";
+require_once __DIR__ . "/config/esquema.php";
+require_once __DIR__ . "/integrations/Alergias.php";
+require_once __DIR__ . "/integrations/NotasConsulta.php";
 
 verificarSesion();
+prepararEsquemaInnovacion($conexion);
 
 /* ======================================================
    VALIDAR PACIENTE
@@ -91,6 +95,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         : null;
 
     $plan_entrenamiento = limpiar($_POST['plan_entrenamiento'] ?? '');
+
+    // Alergias conocidas del paciente (se guardan en la tabla usuarios)
+    $alergias = mb_substr(trim(strip_tags($_POST['alergias'] ?? '')), 0, 255);
 
     // Catálogo de enfermedades (opcional): no rompe expedientes existentes
     // que no tengan ninguna enfermedad vinculada todavía.
@@ -223,6 +230,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 registrarLog("Nuevo expediente creado ID paciente: $paciente_id", "INFO");
             }
 
+            $stmt_alergias = $conexion->prepare("UPDATE usuarios SET alergias = ? WHERE id = ?");
+            $stmt_alergias->bind_param("si", $alergias, $paciente_id);
+            $stmt_alergias->execute();
+            $stmt_alergias->close();
+            $paciente['alergias'] = $alergias;
+
             $stmt_refresh = $conexion->prepare("
                 SELECT *
                 FROM expedientes
@@ -291,7 +304,31 @@ $dietas = [
 ====================================================== */
 
 $resultadoEnfermedades = $conexion->query("SELECT id, nombre FROM enfermedades ORDER BY nombre ASC");
+
+/* ======================================================
+   ALERTAS DE ALERGIA (receta guardada vs. alergias)
+====================================================== */
+
+$alertasAlergia = detectarConflictosAlergia($expediente['receta'] ?? '', $paciente['alergias'] ?? '');
 $enfermedadesCatalogo = $resultadoEnfermedades ? $resultadoEnfermedades->fetch_all(MYSQLI_ASSOC) : [];
+
+/* ======================================================
+   NOTAS DE CONSULTA (dictadas o escritas, formato SOAP)
+====================================================== */
+
+$notasConsulta = notasDePaciente($conexion, $paciente_id, 10);
+$iaNotas = geminiDisponible();
+$origenesNota = [
+    'voz'          => 'Dictada',
+    'texto'        => 'Escrita',
+    'sin_conexion' => 'Guardada sin conexión'
+];
+$titulosSOAP = [
+    'subjetivo' => 'Subjetivo',
+    'objetivo'  => 'Objetivo',
+    'analisis'  => 'Análisis',
+    'plan'      => 'Plan'
+];
 ?>
 
 <!DOCTYPE html>
@@ -343,6 +380,16 @@ $enfermedadesCatalogo = $resultadoEnfermedades ? $resultadoEnfermedades->fetch_a
             </div>
         <?php endif; ?>
 
+        <?php foreach ($alertasAlergia as $alerta): ?>
+            <div class="alerta <?= $alerta['nivel'] === 'precaucion' ? 'precaucion' : 'error' ?>">
+                <i class="fas fa-triangle-exclamation"></i>
+                <?= $alerta['nivel'] === 'precaucion' ? 'Precaución' : 'Alerta de alergia' ?>:
+                la receta incluye <strong><?= htmlspecialchars($alerta['medicamento']) ?></strong>
+                y el paciente tiene registrada alergia a <strong><?= htmlspecialchars($alerta['alergia']) ?></strong>.
+                <?= htmlspecialchars($alerta['motivo']) ?>
+            </div>
+        <?php endforeach; ?>
+
         <main id="zona-expediente-pdf">
 
             <section class="header-paciente">
@@ -382,6 +429,18 @@ $enfermedadesCatalogo = $resultadoEnfermedades ? $resultadoEnfermedades->fetch_a
                         </strong>
                     </article>
 
+                    <article class="exp-item <?= !empty($paciente['alergias']) ? 'alergias' : '' ?>">
+                        <span>Alergias</span>
+                        <strong>
+                            <?php if (!empty($paciente['alergias'])): ?>
+                                <i class="fas fa-triangle-exclamation"></i>
+                                <?= htmlspecialchars($paciente['alergias']) ?>
+                            <?php else: ?>
+                                Sin alergias registradas
+                            <?php endif; ?>
+                        </strong>
+                    </article>
+
                     <article class="exp-item">
                         <span>Dirección</span>
                         <strong>
@@ -391,6 +450,133 @@ $enfermedadesCatalogo = $resultadoEnfermedades ? $resultadoEnfermedades->fetch_a
 
                 </div>
 
+            </section>
+
+            <!-- ==================================================
+                 NOTA DE CONSULTA: dictado por voz + formato SOAP
+            ================================================== -->
+            <section
+                class="card nota-consulta"
+                id="notaConsulta"
+                data-paciente="<?= (int) $paciente_id ?>"
+                data-csrf="<?= htmlspecialchars(generarTokenCSRF()) ?>"
+                data-ia="<?= $iaNotas ? '1' : '0' ?>"
+                data-html2canvas-ignore="true">
+
+                <div class="nota-cab">
+                    <div>
+                        <h3 class="section-title">
+                            <i class="fas fa-microphone-lines"></i>
+                            Nota de consulta
+                        </h3>
+                        <p class="nota-ayuda">
+                            Dicta o escribe lo que pasó en la consulta.
+                            <?= $iaNotas ? 'MediCore la ordena en formato SOAP y revisa las alergias del paciente.' : 'Se guarda en el historial del paciente.' ?>
+                        </p>
+                    </div>
+                    <p class="nota-red" id="notaRed" hidden>
+                        <i class="fas fa-wifi" aria-hidden="true"></i>
+                        Sin conexión: las notas se guardan en este dispositivo
+                    </p>
+                </div>
+
+                <div class="dictado">
+                    <button type="button" class="btn-dictar" id="btnDictar" aria-pressed="false">
+                        <i class="fas fa-microphone" aria-hidden="true"></i>
+                        <span>Dictar</span>
+                    </button>
+                    <p class="dictado-estado" id="dictadoEstado" aria-live="polite">
+                        Presiona Dictar y habla con normalidad.
+                    </p>
+                </div>
+
+                <label for="notaTexto" class="sr-only">Lo que pasó en la consulta</label>
+                <textarea
+                    id="notaTexto"
+                    class="nota-texto"
+                    rows="5"
+                    maxlength="8000"
+                    placeholder="Ej. Refiere dolor de garganta desde hace tres días, sin fiebre. Faringe hiperémica, temperatura 37.2. Faringitis aguda. Paracetamol 500 mg cada 8 horas por 3 días y abundantes líquidos."></textarea>
+                <p class="dictado-parcial" id="dictadoParcial" aria-hidden="true"></p>
+
+                <div class="soap" id="notaSoap" hidden>
+                    <div class="soap-grid">
+                        <label>
+                            <span>Subjetivo <small>lo que refiere el paciente</small></span>
+                            <textarea data-campo="subjetivo" rows="3"></textarea>
+                        </label>
+                        <label>
+                            <span>Objetivo <small>exploración y signos</small></span>
+                            <textarea data-campo="objetivo" rows="3"></textarea>
+                        </label>
+                        <label>
+                            <span>Análisis <small>diagnóstico</small></span>
+                            <textarea data-campo="analisis" rows="3"></textarea>
+                        </label>
+                        <label>
+                            <span>Plan <small>tratamiento e indicaciones</small></span>
+                            <textarea data-campo="plan" rows="3"></textarea>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="nota-alertas" id="notaAlertas"></div>
+
+                <div class="nota-acciones">
+                    <?php if ($iaNotas): ?>
+                        <button type="button" class="btn-success" id="btnOrdenar">
+                            <i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>
+                            Ordenar con IA
+                        </button>
+                    <?php endif; ?>
+                    <button type="button" class="btn-success" id="btnPasarExpediente" hidden>
+                        <i class="fas fa-arrow-down" aria-hidden="true"></i>
+                        Pasar al diagnóstico y receta
+                    </button>
+                    <button type="button" class="btn-primary" id="btnGuardarNota">
+                        <i class="fas fa-floppy-disk" aria-hidden="true"></i>
+                        Guardar nota
+                    </button>
+                </div>
+
+                <p class="nota-mensaje" id="notaMensaje" role="status"></p>
+
+                <h4 class="notas-titulo">Notas anteriores</h4>
+
+                <p class="notas-vacio" id="notasVacio" <?= empty($notasConsulta) ? '' : 'hidden' ?>>
+                    Todavía no hay notas de consulta para este paciente.
+                </p>
+
+                <ol class="notas-lista" id="notasLista">
+                    <?php foreach ($notasConsulta as $nota): ?>
+                        <?php
+                        $resumenNota = trim(strtok((string) ($nota['analisis'] ?: $nota['subjetivo'] ?: $nota['transcripcion']), "\n"));
+                        $tieneSOAP = trim($nota['subjetivo'] . $nota['objetivo'] . $nota['analisis'] . $nota['plan']) !== '';
+                        ?>
+                        <li class="nota" data-id="<?= htmlspecialchars($nota['id_cliente']) ?>">
+                            <details>
+                                <summary>
+                                    <span class="nota-fecha"><?= htmlspecialchars(date('d/m/Y H:i', strtotime($nota['creado_en']))) ?></span>
+                                    <span class="nota-origen <?= htmlspecialchars($nota['origen']) ?>"><?= htmlspecialchars($origenesNota[$nota['origen']] ?? 'Escrita') ?></span>
+                                    <span class="nota-resumen"><?= htmlspecialchars(mb_strimwidth($resumenNota, 0, 90, '…')) ?></span>
+                                </summary>
+
+                                <?php if ($tieneSOAP): ?>
+                                    <dl class="nota-soap">
+                                        <?php foreach ($titulosSOAP as $campo => $titulo): ?>
+                                            <?php if (trim((string) $nota[$campo]) !== ''): ?>
+                                                <dt><?= $titulo ?></dt>
+                                                <dd><?= htmlspecialchars($nota[$campo]) ?></dd>
+                                            <?php endif; ?>
+                                        <?php endforeach; ?>
+                                    </dl>
+                                <?php else: ?>
+                                    <p class="nota-libre"><?= htmlspecialchars($nota['transcripcion']) ?></p>
+                                <?php endif; ?>
+                            </details>
+                        </li>
+                    <?php endforeach; ?>
+                </ol>
             </section>
 
             <section class="card">
@@ -522,6 +708,24 @@ $enfermedadesCatalogo = $resultadoEnfermedades ? $resultadoEnfermedades->fetch_a
                         <?php endforeach; ?>
                     </select>
 
+                    <label>Alergias conocidas</label>
+
+                    <input
+                        type="text"
+                        name="alergias"
+                        maxlength="255"
+                        placeholder="Separadas por coma. Ej. penicilina, ibuprofeno, mariscos (déjalo vacío si no tiene)"
+                        value="<?= htmlspecialchars($paciente['alergias'] ?? '') ?>">
+
+                    <p class="medical-note" data-html2canvas-ignore="true" style="margin:8px 0 18px;">
+                        <i class="fas fa-shield-virus"></i>
+                        Al guardar, MediCore revisa si la receta incluye algún medicamento al que el paciente es alérgico
+                        (o de su mismo grupo, como penicilinas o AINEs).
+                        <a href="chatbot.php?paciente=<?= (int) $paciente_id ?>" target="_blank" rel="noopener" style="color:var(--primary);font-weight:700;">
+                            <i class="fas fa-robot"></i> Consultar un medicamento en el asistente
+                        </a>
+                    </p>
+
                     <label>Receta y Plan Alimenticio</label>
 
                     <textarea
@@ -628,6 +832,8 @@ $enfermedadesCatalogo = $resultadoEnfermedades ? $resultadoEnfermedades->fetch_a
         </main>
 
     </div>
+
+    <script src="assets/js/nota-voz.js?v=1" defer></script>
 
     <script>
         function calcularIMC() {

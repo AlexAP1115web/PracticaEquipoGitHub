@@ -1,14 +1,14 @@
 {
   "name": "MediCore Professional System",
   "short_name": "MediCore",
-  "description": "Sistema de gestion clinica: pacientes, expedientes, agenda, reportes y recomendaciones.",
+  "description": "Sistema de gestión clínica: pacientes, expedientes, agenda, asistente de medicamentos y notas de consulta por voz.",
   "id": "./",
   "start_url": "./index.php",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#F6FAF7",
-  "theme_color": "#1E7D3C",
+  "background_color": "#F4F7F5",
+  "theme_color": "#0E3B2C",
   "lang": "es-MX",
   "icons": [
     {
@@ -22,6 +22,60 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Escanear medicamento",
+      "short_name": "Escanear",
+      "description": "Toma una foto a la caja y revisa alergias",
+      "url": "./chatbot.php?escanear=1",
+      "icons": [
+        {
+          "src": "assets/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Asistente de medicamentos",
+      "short_name": "Asistente",
+      "description": "Efectos secundarios, interacciones y dosis",
+      "url": "./chatbot.php",
+      "icons": [
+        {
+          "src": "assets/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Agenda de hoy",
+      "short_name": "Agenda",
+      "description": "Citas programadas",
+      "url": "./agenda.php",
+      "icons": [
+        {
+          "src": "assets/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Nuevo paciente",
+      "short_name": "Nuevo paciente",
+      "description": "Dar de alta a un paciente",
+      "url": "./nuevo_paciente.php",
+      "icons": [
+        {
+          "src": "assets/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     }
   ]
 }

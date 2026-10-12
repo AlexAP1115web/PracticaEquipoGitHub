@@ -3,18 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#1E7D3C">
+<meta name="theme-color" content="#0E3B2C">
 <title>MediCore | Sin conexión</title>
 <style>
   body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
-         font-family: "Segoe UI", Arial, sans-serif; background: #F6FAF7; color: #12283F; padding: 24px; box-sizing: border-box; }
-  .caja { background: #fff; border-radius: 18px; padding: 36px 28px; max-width: 420px; text-align: center;
-          box-shadow: 0 10px 30px rgba(18, 40, 63, .08); }
-  img { width: 96px; height: 96px; }
-  h1 { font-size: 1.5rem; margin: 16px 0 8px; color: #1E7D3C; }
-  p { line-height: 1.5; color: #4a5a6a; }
-  button { margin-top: 12px; padding: 12px 26px; border: 0; border-radius: 999px; background: #1E7D3C;
-           color: #fff; font-weight: 700; font-size: 1rem; cursor: pointer; }
+         font-family: "Onest", system-ui, -apple-system, "Segoe UI", sans-serif; background: #F4F7F5; color: #15241D;
+         padding: 24px; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  .caja { background: #fff; border: 1px solid #D9E2DC; border-radius: 14px; padding: 36px 28px; max-width: 420px; text-align: center; }
+  img { width: 80px; height: 80px; margin: 0 auto; display: block; }
+  h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.01em; margin: 18px 0 8px; color: #0E3B2C; }
+  p { line-height: 1.55; color: #5E6E66; margin: 8px 0; }
+  button { margin-top: 18px; min-height: 46px; padding: 0 24px; border: 0; border-radius: 9px; background: #00843D;
+           color: #fff; font: inherit; font-weight: 600; font-size: 1rem; cursor: pointer; transition: transform 120ms cubic-bezier(.23,1,.32,1); }
+  button:active { transform: scale(.97); }
+  button:focus-visible { outline: 2px solid #00843D; outline-offset: 2px; }
+  .pendientes { margin-top: 16px; padding: 12px 14px; border-radius: 9px; background: #E8EFF8; color: #1F4E8C; font-size: .95rem; line-height: 1.5; }
+  .pendientes[hidden] { display: none; }
+  @media (prefers-reduced-motion: reduce) { button { transition: none; } button:active { transform: none; } }
 </style>
 </head>
 <body>
@@ -23,7 +28,25 @@
     <h1>Sin conexión</h1>
     <p>MediCore necesita internet para mostrar expedientes, citas y reportes, porque esos datos viven en el servidor y no se guardan en el dispositivo por seguridad.</p>
     <p>Revisa tu conexión y vuelve a intentarlo.</p>
-    <button onclick="location.reload()">Reintentar</button>
+    <p class="pendientes" id="pendientes" hidden></p>
+    <button type="button" onclick="location.reload()">Reintentar</button>
   </div>
+  <script src="assets/js/cola-notas.js"></script>
+  <script>
+    // Notas de consulta que esperan en este dispositivo para enviarse
+    if (window.MediCoreCola) {
+      MediCoreCola.listar().then(function (notas) {
+        if (notas.length > 0) {
+          var aviso = document.getElementById('pendientes');
+          aviso.textContent = notas.length === 1
+            ? 'Tienes 1 nota de consulta guardada en este dispositivo. Se enviará sola cuando vuelva el internet.'
+            : 'Tienes ' + notas.length + ' notas de consulta guardadas en este dispositivo. Se enviarán solas cuando vuelva el internet.';
+          aviso.hidden = false;
+        }
+      }).catch(function () {});
+    }
+    // Al volver la conexión se recarga la página que se estaba abriendo
+    window.addEventListener('online', function () { location.reload(); });
+  </script>
 </body>
 </html>

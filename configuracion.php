@@ -1,8 +1,11 @@
 <?php
 include("config.php");
 include("security.php");
+require_once __DIR__ . "/config/esquema.php";
+require_once __DIR__ . "/integrations/WebPush.php";
 
 verificarSesion();
+prepararEsquemaInnovacion($conexion);
 
 $mensaje_exito = "";
 $mensaje_error = "";
@@ -458,9 +461,54 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             </article>
 
+            <article class="config-card" style="grid-column:1 / -1;">
+
+                <h3>
+                    <i class="fas fa-bell"></i>
+                    Notificaciones Push
+                </h3>
+
+                <div
+                    id="push-panel"
+                    data-vapid="<?= htmlspecialchars(pushDisponible() ? apiConfig('VAPID_PUBLIC_KEY') : '') ?>"
+                    data-csrf="<?= htmlspecialchars(generarTokenCSRF()) ?>">
+
+                    <p style="color:var(--muted);line-height:1.6;margin-bottom:14px;">
+                        Recibe en esta computadora o celular un aviso de las citas de hoy y de mañana, aunque MediCore
+                        esté cerrado. Cada dispositivo se activa por separado.
+                    </p>
+
+                    <p id="push-estado" class="push-estado">Revisando…</p>
+
+                    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;">
+                        <button type="button" class="btn-primary" id="push-activar">
+                            <i class="fas fa-bell"></i> Activar en este dispositivo
+                        </button>
+                        <button type="button" class="btn-refresh" id="push-desactivar" style="display:none;">
+                            <i class="fas fa-bell-slash"></i> Desactivar
+                        </button>
+                        <button type="button" class="btn-success" id="push-prueba">
+                            <i class="fas fa-paper-plane"></i> Enviar notificación de prueba
+                        </button>
+                        <button type="button" class="btn-success" id="push-recordatorios">
+                            <i class="fas fa-calendar-check"></i> Enviar recordatorios de citas ahora
+                        </button>
+                    </div>
+
+                </div>
+
+            </article>
+
         </section>
 
     </div>
+
+    <style>
+        .push-estado{padding:12px 14px;border-radius:12px;background:var(--soft-2);font-weight:600;font-size:14px}
+        .push-estado.ok{background:#dcfce7;color:#166534}
+        .push-estado.error{background:#fee2e2;color:#991b1b}
+    </style>
+    <script src="assets/js/push.js?v=1"></script>
 
 </body>
 

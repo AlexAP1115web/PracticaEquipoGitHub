@@ -1,8 +1,10 @@
 <?php
 include("config.php");
 include("security.php");
+require_once __DIR__ . "/config/esquema.php";
 
 verificarSesion();
+prepararEsquemaInnovacion($conexion);
 
 $mensaje_exito = "";
 $mensaje_error = "";
@@ -18,6 +20,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $telefono = limpiar($_POST['telefono'] ?? '');
     $direccion = limpiar($_POST['direccion'] ?? '');
     $edad = intval($_POST['edad'] ?? 0);
+    $alergias = mb_substr(trim(strip_tags($_POST['alergias'] ?? '')), 0, 255);
     $rol = "paciente";
 
     if (
@@ -61,21 +64,23 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     rol,
                     telefono,
                     direccion,
-                    edad
+                    edad,
+                    alergias
                 )
                 VALUES
-                (?, ?, ?, ?, ?, ?, ?)
+                (?, ?, ?, ?, ?, ?, ?, ?)
             ");
 
             $insert->bind_param(
-                "ssssssi",
+                "ssssssis",
                 $nombre,
                 $email,
                 $password_encriptada,
                 $rol,
                 $telefono,
                 $direccion,
-                $edad
+                $edad,
+                $alergias
             );
 
             if ($insert->execute()) {
@@ -215,6 +220,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     name="direccion"
                     placeholder="Dirección completa del paciente..."
                     required></textarea>
+
+                <label>Alergias conocidas (opcional)</label>
+                <input
+                    type="text"
+                    name="alergias"
+                    maxlength="255"
+                    placeholder="Separadas por coma. Ej. penicilina, ibuprofeno, mariscos">
 
                 <h3 class="section-title">
                     <i class="fas fa-user-lock"></i>

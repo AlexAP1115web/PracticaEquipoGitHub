@@ -54,6 +54,18 @@ if (
     }
 }
 
+/* Citas de hoy: se muestran junto a "Agenda" y, en la app instalada,
+   como número sobre el ícono (Badging API, ver assets/js/pwa.js). */
+$citas_hoy_sidebar = 0;
+
+if (isset($conexion) && $conexion instanceof mysqli) {
+    $resultado_citas = $conexion->query("SELECT COUNT(*) AS total FROM expedientes WHERE fecha_cita = CURDATE()");
+
+    if ($resultado_citas) {
+        $citas_hoy_sidebar = (int) ($resultado_citas->fetch_assoc()['total'] ?? 0);
+    }
+}
+
 $menu_items = [
     [
         'archivo' => 'index.php',
@@ -80,6 +92,11 @@ $menu_items = [
         'archivo' => 'recomendaciones.php',
         'icono'   => 'fas fa-notes-medical',
         'titulo'  => 'Recomendaciones'
+    ],
+    [
+        'archivo' => 'chatbot.php',
+        'icono'   => 'fas fa-robot',
+        'titulo'  => 'Asistente IA'
     ],
     [
         'archivo' => 'catalogo_enfermedades.php',
@@ -128,12 +145,14 @@ $menu_items = [
             </div>
         <?php endif; ?>
 
-        <div class="doctor-name">
-            Dr. <?= htmlspecialchars($nombre_medico) ?>
-        </div>
+        <div>
+            <div class="doctor-name">
+                <?= htmlspecialchars($nombre_medico) ?>
+            </div>
 
-        <div class="doctor-role">
-            Panel Médico Profesional
+            <div class="doctor-role">
+                Médico tratante
+            </div>
         </div>
     </div>
 
@@ -156,6 +175,10 @@ $menu_items = [
 
                 <i class="<?= htmlspecialchars($item['icono']) ?>"></i>
                 <span><?= htmlspecialchars($item['titulo']) ?></span>
+
+                <?php if ($item['archivo'] === 'agenda.php' && $citas_hoy_sidebar > 0): ?>
+                    <b class="contador" title="Citas de hoy"><?= $citas_hoy_sidebar ?><span class="sr-only"> citas hoy</span></b>
+                <?php endif; ?>
             </a>
         <?php endforeach; ?>
     </nav>
@@ -166,5 +189,12 @@ $menu_items = [
         <i class="fas fa-right-from-bracket"></i>
         <span>Cerrar Sesión</span>
     </a>
+
+    <!-- Datos para la PWA: número sobre el ícono y envío de notas pendientes -->
+    <div
+        id="datos-pwa"
+        hidden
+        data-citas-hoy="<?= $citas_hoy_sidebar ?>"
+        data-csrf="<?= function_exists('generarTokenCSRF') ? htmlspecialchars(generarTokenCSRF()) : '' ?>"></div>
 
 </aside>

@@ -231,669 +231,701 @@ if (isset($_POST['login']) && empty($error)) {
 }
 ?>
 
+
 <!DOCTYPE html>
 <html lang="es">
 
 <head>
-
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar sesión | MediCore</title>
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0">
-
-    <title>
-        MediCore | Acceso Médico
-    </title>
-
-    <!-- ======================================================
-         FUENTES
-    ====================================================== -->
-
-    <link
-        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
-        rel="stylesheet">
-
-    <link
-        rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
         :root {
-
-            --primary: #0ea5e9;
-            --primary-dark: #0369a1;
-
-            --navy: #0f172a;
-            --navy-dark: #020617;
-
-            --white: #ffffff;
-
-            --border: #cbd5e1;
-
-            --danger: #dc2626;
-            --success: #059669;
-
-            --gray: #64748b;
-            --light: #f8fafc;
+            --pino: #0E3B2C;
+            --pino-2: #134A38;
+            --verde: #00843D;
+            --verde-osc: #006B31;
+            --menta: #E4F1E8;
+            --papel: #F4F7F5;
+            --linea: #D9E2DC;
+            --tinta: #15241D;
+            --gris: #5E6E66;
+            --alerta: #B42318;
+            --alerta-bg: #FEF3F2;
+            --ok: #067647;
+            --ok-bg: #ECFDF3;
+            --precaucion: #A15C07;
+            --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
         }
 
-        * {
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-            font-family: 'Poppins', sans-serif;
         }
 
         body {
+            font-family: 'Onest', system-ui, -apple-system, 'Segoe UI', sans-serif;
+            color: var(--tinta);
+            background: #fff;
+            -webkit-font-smoothing: antialiased;
+        }
 
+        .acceso {
+            display: grid;
+            grid-template-columns: minmax(0, 46fr) minmax(0, 54fr);
             min-height: 100vh;
+            min-height: 100dvh;
+        }
 
-            background:
-                linear-gradient(rgba(2, 6, 23, .92),
-                    rgba(15, 23, 42, .95)),
-                url('https://images.unsplash.com/photo-1586773860418-d37222d8fce3?q=80&w=2070&auto=format&fit=crop');
+        /* ---------- Panel de contexto ---------- */
 
-            background-size: cover;
-            background-position: center;
-
+        .contexto {
+            position: relative;
             display: flex;
-            justify-content: center;
-            align-items: center;
-
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 40px;
+            padding: 40px 48px;
+            background: var(--pino);
+            color: #fff;
             overflow: hidden;
-
-            position: relative;
+            isolation: isolate;
         }
 
-        /* ======================================================
-           EFECTOS
-        ====================================================== */
-
-        .circle {
-
-            position: absolute;
-
-            border-radius: 50%;
-
-            filter: blur(90px);
-
-            opacity: .25;
-
-            animation: float 8s infinite alternate;
-        }
-
-        .circle.one {
-
-            width: 320px;
-            height: 320px;
-
-            background: #0ea5e9;
-
-            top: -120px;
-            left: -120px;
-        }
-
-        .circle.two {
-
-            width: 260px;
-            height: 260px;
-
-            background: #38bdf8;
-
-            bottom: -100px;
-            right: -80px;
-        }
-
-        @keyframes float {
-
-            from {
-                transform: translateY(0px);
-            }
-
-            to {
-                transform: translateY(20px);
-            }
-        }
-
-        /* ======================================================
-           LOGIN BOX
-        ====================================================== */
-
-        .login-container {
-
-            width: 100%;
-            max-width: 460px;
-
-            background:
-                rgba(255, 255, 255, .97);
-
-            backdrop-filter: blur(14px);
-
-            border-radius: 28px;
-
-            padding: 45px;
-
-            position: relative;
-
-            z-index: 10;
-
-            box-shadow:
-                0 25px 50px rgba(0, 0, 0, .45);
-
-            border: 1px solid rgba(255, 255, 255, .5);
-        }
-
-        .logo {
-
-            width: 95px;
-
-            display: block;
-
-            margin: 0 auto 20px;
-
-            border-radius: 24px;
-
-            border: 4px solid white;
-
-            box-shadow:
-                0 10px 25px rgba(2, 132, 199, .25);
-        }
-
-        .title {
-
-            text-align: center;
-
-            color: var(--navy);
-
-            font-size: 32px;
-
-            font-weight: 800;
-
-            margin-bottom: 6px;
-        }
-
-        .subtitle {
-
-            text-align: center;
-
-            color: var(--gray);
-
-            margin-bottom: 35px;
-
-            font-size: 15px;
-        }
-
-        /* ======================================================
-           ALERTAS
-        ====================================================== */
-
-        .alert {
-
-            padding: 15px 18px;
-
-            border-radius: 14px;
-
-            margin-bottom: 25px;
-
-            font-size: 14px;
-
-            font-weight: 600;
-
+        .marca {
             display: flex;
-
             align-items: center;
-
             gap: 12px;
-        }
-
-        .alert-error {
-
-            background: #fef2f2;
-
-            color: var(--danger);
-
-            border: 1px solid #fecaca;
-        }
-
-        .alert-success {
-
-            background: #ecfdf5;
-
-            color: var(--success);
-
-            border: 1px solid #a7f3d0;
-        }
-
-        /* ======================================================
-           FORM
-        ====================================================== */
-
-        .form-group {
-
-            margin-bottom: 22px;
-        }
-
-        .form-group label {
-
-            display: block;
-
-            margin-bottom: 8px;
-
-            color: var(--navy);
-
-            font-size: 14px;
-
-            font-weight: 700;
-        }
-
-        .input-box {
-
-            position: relative;
-        }
-
-        .input-box i {
-
-            position: absolute;
-
-            left: 18px;
-            top: 50%;
-
-            transform: translateY(-50%);
-
-            color: #94a3b8;
-
-            font-size: 17px;
-        }
-
-        .input-box input {
-
-            width: 100%;
-
-            padding: 16px 18px 16px 50px;
-
-            border-radius: 14px;
-
-            border: 2px solid var(--border);
-
-            background: var(--light);
-
-            font-size: 15px;
-
-            transition: .3s;
-        }
-
-        .input-box input:focus {
-
-            outline: none;
-
-            border-color: var(--primary);
-
-            background: white;
-
-            box-shadow:
-                0 0 0 4px rgba(14, 165, 233, .15);
-        }
-
-        .toggle-password {
-
-            position: absolute !important;
-
-            right: 18px !important;
-            left: auto !important;
-
-            cursor: pointer;
-        }
-
-        /* ======================================================
-           BUTTON
-        ====================================================== */
-
-        .btn-login {
-
-            width: 100%;
-
-            border: none;
-
-            background:
-                linear-gradient(135deg,
-                    var(--primary),
-                    var(--primary-dark));
-
-            color: white;
-
-            padding: 17px;
-
-            border-radius: 14px;
-
-            font-size: 16px;
-
-            font-weight: 700;
-
-            cursor: pointer;
-
-            transition: .3s;
-
-            display: flex;
-
-            justify-content: center;
-
-            align-items: center;
-
-            gap: 10px;
-
-            box-shadow:
-                0 15px 25px rgba(2, 132, 199, .25);
-        }
-
-        .btn-login:hover {
-
-            transform: translateY(-3px);
-
-            box-shadow:
-                0 18px 35px rgba(2, 132, 199, .35);
-        }
-
-        /* ======================================================
-           LINKS
-        ====================================================== */
-
-        .extra {
-
-            margin-top: 20px;
-
-            text-align: right;
-        }
-
-        .extra a {
-
-            color: var(--primary);
-
+            color: #fff;
             text-decoration: none;
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
 
+        .marca span.logo {
+            display: grid;
+            place-items: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            background: #fff;
+        }
+
+        .marca img {
+            width: 36px;
+            height: 36px;
+            object-fit: contain;
+        }
+
+        .contexto-texto {
+            max-width: 30rem;
+        }
+
+        .contexto h2 {
+            font-size: clamp(28px, 2.6vw, 38px);
+            line-height: 1.15;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            text-wrap: balance;
+        }
+
+        .contexto-texto p {
+            margin-top: 16px;
+            font-size: 16px;
+            line-height: 1.6;
+            color: rgba(228, 241, 232, .78);
+            max-width: 28rem;
+        }
+
+        /* Línea de electrocardiograma: se dibuja una sola vez al cargar */
+        .ecg {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 46%;
+            width: 100%;
+            height: 120px;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .ecg path {
+            fill: none;
+            stroke: #2FA86A;
+            stroke-width: 2;
+            stroke-linejoin: round;
+            stroke-linecap: round;
+            opacity: .45;
+            stroke-dasharray: 1;
+            stroke-dashoffset: 0;
+            animation: trazo 1.6s var(--ease-out) .2s both;
+        }
+
+        @keyframes trazo {
+            from { stroke-dashoffset: 1; }
+            to { stroke-dashoffset: 0; }
+        }
+
+        /* Ejemplo del asistente de medicamentos */
+        .muestra {
+            max-width: 26rem;
+            background: #fff;
+            color: var(--tinta);
+            border-radius: 14px;
+            padding: 18px;
+            border: 1px solid rgba(255, 255, 255, .2);
+        }
+
+        .muestra-cab {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gris);
+        }
+
+        .muestra-cab i {
+            display: grid;
+            place-items: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: var(--menta);
+            color: var(--verde);
+            font-size: 13px;
+        }
+
+        .muestra-pregunta {
+            margin: 14px 0 10px auto;
+            width: fit-content;
+            max-width: 90%;
+            padding: 10px 14px;
+            border-radius: 12px 12px 4px 12px;
+            background: var(--pino);
+            color: #fff;
             font-size: 14px;
+            line-height: 1.45;
+        }
 
+        .muestra-respuesta {
+            display: flex;
+            gap: 10px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            background: var(--alerta-bg);
+            border: 1px solid #FECDCA;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .muestra-respuesta i {
+            color: var(--alerta);
+            margin-top: 3px;
+        }
+
+        .muestra-respuesta strong {
+            color: var(--alerta);
             font-weight: 600;
         }
 
-        .extra a:hover {
-
-            text-decoration: underline;
+        .muestra-fuente {
+            margin-top: 10px;
+            font-size: 12px;
+            color: var(--gris);
         }
 
-        /* ======================================================
-           GOOGLE OAUTH2
-        ====================================================== */
-
-        .oauth-divider {
-            text-align: center;
-            color: var(--gray);
+        .contexto-pie {
             font-size: 13px;
-            margin: 22px 0 16px;
+            color: rgba(228, 241, 232, .6);
+        }
+
+        /* ---------- Formulario ---------- */
+
+        .formulario {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 48px 32px;
+        }
+
+        .formulario-caja {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .formulario h1 {
+            font-size: 30px;
+            line-height: 1.2;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        .formulario-intro {
+            margin-top: 8px;
+            color: var(--gris);
+            font-size: 15px;
+            line-height: 1.55;
+        }
+
+        .aviso {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            margin-top: 24px;
+            padding: 12px 14px;
+            border-radius: 9px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .aviso i {
+            margin-top: 3px;
+        }
+
+        .aviso-error {
+            background: var(--alerta-bg);
+            border: 1px solid #FECDCA;
+            color: var(--alerta);
+        }
+
+        .aviso-exito {
+            background: var(--ok-bg);
+            border: 1px solid #ABEFC6;
+            color: var(--ok);
+        }
+
+        form {
+            margin-top: 28px;
+        }
+
+        .campo + .campo {
+            margin-top: 18px;
+        }
+
+        .campo-cab {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .campo label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .campo-cab a {
+            font-size: 14px;
+            color: var(--verde-osc);
+            font-weight: 500;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+
+        .entrada {
             position: relative;
         }
 
-        .oauth-divider::before,
-        .oauth-divider::after {
-            content: "";
+        .entrada > i {
             position: absolute;
+            left: 14px;
             top: 50%;
-            width: 38%;
-            height: 1px;
-            background: var(--border);
+            transform: translateY(-50%);
+            color: var(--gris);
+            font-size: 15px;
+            pointer-events: none;
         }
 
-        .oauth-divider::before { left: 0; }
-        .oauth-divider::after { right: 0; }
+        .entrada input {
+            width: 100%;
+            height: 48px;
+            padding: 0 14px 0 42px;
+            border: 1px solid var(--linea);
+            border-radius: 9px;
+            background: #fff;
+            font: inherit;
+            font-size: 16px;
+            color: var(--tinta);
+            transition: border-color 150ms ease, box-shadow 150ms ease;
+        }
+
+        .entrada input::placeholder {
+            color: #95A39C;
+        }
+
+        .entrada input:focus {
+            outline: none;
+            border-color: var(--verde);
+            box-shadow: 0 0 0 3px rgba(0, 132, 61, .18);
+        }
+
+        .entrada input[type="password"],
+        .entrada input.con-boton {
+            padding-right: 52px;
+        }
+
+        .ver-clave {
+            position: absolute;
+            right: 2px;
+            top: 2px;
+            width: 44px;
+            height: 44px;
+            display: grid;
+            place-items: center;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--gris);
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        .bloq-mayus {
+            display: none;
+            margin-top: 8px;
+            font-size: 13px;
+            color: var(--precaucion);
+        }
+
+        .bloq-mayus.visible {
+            display: block;
+        }
+
+        .btn-entrar {
+            width: 100%;
+            height: 48px;
+            margin-top: 26px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            border: 0;
+            border-radius: 9px;
+            background: var(--verde);
+            color: #fff;
+            font: inherit;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 150ms ease, transform 120ms var(--ease-out);
+        }
+
+        .btn-entrar:active {
+            transform: scale(.97);
+        }
+
+        .btn-entrar[aria-busy="true"] {
+            background: var(--verde-osc);
+            cursor: progress;
+        }
+
+        .separador {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 22px 0;
+            font-size: 13px;
+            color: var(--gris);
+        }
+
+        .separador::before,
+        .separador::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: var(--linea);
+        }
 
         .btn-google {
             width: 100%;
-            display: flex;
+            height: 48px;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
-            padding: 14px;
-            border-radius: 14px;
-            border: 2px solid var(--border);
-            background: white;
-            color: var(--navy);
-            font-weight: 700;
-            font-size: 14px;
+            border: 1px solid var(--linea);
+            border-radius: 9px;
+            background: #fff;
+            color: var(--tinta);
+            font-size: 15px;
+            font-weight: 500;
             text-decoration: none;
-            transition: .3s;
+            transition: background-color 150ms ease, transform 120ms var(--ease-out);
         }
 
-        .btn-google:hover {
-            border-color: var(--primary);
-            background: var(--light);
+        .btn-google:active {
+            transform: scale(.97);
         }
 
-        .btn-google i {
-            color: #ea4335;
+        .volver {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 28px;
+            font-size: 14px;
+            color: var(--gris);
+            text-decoration: none;
+            border-radius: 4px;
         }
 
-        /* ======================================================
-           FOOTER
-        ====================================================== */
-
-        .footer {
-
-            margin-top: 35px;
-
-            text-align: center;
-
-            color: #94a3b8;
-
-            font-size: 13px;
+        a:focus-visible,
+        button:focus-visible {
+            outline: 2px solid var(--verde);
+            outline-offset: 2px;
         }
 
-        /* ======================================================
-           RESPONSIVE
-        ====================================================== */
+        @media (hover: hover) and (pointer: fine) {
+            .btn-entrar:hover { background: var(--verde-osc); }
+            .btn-google:hover { background: var(--papel); }
+            .ver-clave:hover { color: var(--tinta); }
+            .campo-cab a:hover,
+            .volver:hover { text-decoration: underline; text-underline-offset: 3px; }
+            .volver:hover { color: var(--tinta); }
+        }
 
-        @media(max-width:550px) {
+        /* ---------- Pantallas medianas y móviles ---------- */
 
-            body {
-                padding: 20px;
+        @media (max-width: 1100px) {
+            .contexto { padding: 36px; }
+        }
+
+        @media (max-width: 900px) {
+            .acceso {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr;
             }
 
-            .login-container {
-                padding: 35px 25px;
+            .contexto {
+                padding: 18px 24px 34px;
+                gap: 0;
             }
 
-            .title {
-                font-size: 28px;
+            .contexto-texto,
+            .muestra,
+            .contexto-pie {
+                display: none;
             }
+
+            .ecg {
+                top: auto;
+                bottom: 0;
+                height: 44px;
+            }
+
+            .formulario {
+                justify-content: flex-start;
+                padding: 36px 24px 48px;
+            }
+
+            .formulario h1 {
+                font-size: 26px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .ecg path { animation: none; }
+            .btn-entrar,
+            .btn-google,
+            .entrada input { transition: none; }
+            .btn-entrar:active,
+            .btn-google:active { transform: none; }
         }
     </style>
 
-<?php include __DIR__ . "/pwa_head.php"; ?>
+    <?php include __DIR__ . "/pwa_head.php"; ?>
 </head>
 
 <body>
 
-    <div class="circle one"></div>
+    <main class="acceso">
 
-    <div class="circle two"></div>
+        <!-- Panel de contexto -->
+        <aside class="contexto" aria-label="Acerca de MediCore">
 
-    <!-- ======================================================
-         LOGIN
-    ====================================================== -->
-
-    <div class="login-container">
-
-        <img
-            src="assets/Medicore.png"
-            alt="Logo MediCore"
-            class="logo">
-
-        <h1 class="title">
-            MediCore
-        </h1>
-
-        <p class="subtitle">
-            Plataforma Profesional de Gestión Clínica
-        </p>
-
-        <!-- ======================================================
-             ALERTAS
-        ====================================================== -->
-
-        <?php if ($error): ?>
-
-            <div class="alert alert-error">
-
-                <i class="fas fa-exclamation-triangle"></i>
-
-                <?= htmlspecialchars($error) ?>
-
-            </div>
-
-        <?php endif; ?>
-
-        <?php if ($exito): ?>
-
-            <div class="alert alert-success">
-
-                <i class="fas fa-check-circle"></i>
-
-                <?= htmlspecialchars($exito) ?>
-
-            </div>
-
-        <?php endif; ?>
-
-        <!-- ======================================================
-             FORMULARIO
-        ====================================================== -->
-
-        <form
-            method="POST"
-            action="login.php"
-            id="loginForm">
-
-            <input
-                type="hidden"
-                name="csrf_token"
-                value="<?= generarTokenCSRF() ?>">
-
-            <div class="form-group">
-
-                <label>
-                    Correo Institucional
-                </label>
-
-                <div class="input-box">
-
-                    <i class="fas fa-envelope"></i>
-
-                    <input
-                        type="email"
-                        name="correo"
-                        placeholder="doctor@medicore.com"
-                        value="<?= htmlspecialchars($correo_value) ?>"
-                        required>
-
-                </div>
-
-            </div>
-
-            <div class="form-group">
-
-                <label>
-                    Contraseña
-                </label>
-
-                <div class="input-box">
-
-                    <i class="fas fa-lock"></i>
-
-                    <input
-                        type="password"
-                        name="password"
-                        id="password"
-                        placeholder="••••••••"
-                        required>
-
-                    <i
-                        class="fas fa-eye toggle-password"
-                        onclick="mostrarPassword()">
-                    </i>
-
-                </div>
-
-            </div>
-
-            <button
-                type="submit"
-                name="login"
-                class="btn-login"
-                id="btnLogin">
-
-                <i class="fas fa-sign-in-alt"></i>
-
-                Ingresar al Sistema
-
-            </button>
-
-            <div class="extra">
-
-                <a href="recuperar_password.php">
-                    ¿Olvidaste tu contraseña?
-                </a>
-
-            </div>
-
-        </form>
-
-        <?php if (apiHabilitada(['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'])): ?>
-            <div class="oauth-divider">o continúa con</div>
-            <a href="oauth_google.php" class="btn-google">
-                <i class="fab fa-google"></i>
-                Iniciar sesión con Google
+            <a class="marca" href="home.php">
+                <span class="logo"><img src="assets/Medicore.png" alt=""></span>
+                MediCore
             </a>
-        <?php endif; ?>
 
-        <div class="footer">
+            <svg class="ecg" viewBox="0 0 600 120" preserveAspectRatio="none" aria-hidden="true">
+                <path pathLength="1" d="M0 70 H190 L204 70 L214 52 L224 70 L238 70 L250 14 L264 108 L276 70 L292 70 L302 60 L314 70 H600" />
+            </svg>
 
-            © <?= date("Y") ?> MediCore Professional System
+            <div class="contexto-texto">
+                <h2>Tu consulta, ordenada antes de que entre el paciente.</h2>
+                <p>Expedientes, citas, reportes y un asistente que revisa alergias y efectos secundarios con la información oficial de CIMA.</p>
+            </div>
 
-        </div>
+            <div class="muestra" aria-hidden="true">
+                <div class="muestra-cab">
+                    <i class="fas fa-robot"></i>
+                    Asistente de medicamentos
+                </div>
+                <p class="muestra-pregunta">¿Puedo recetarle amoxicilina a Ana Lucía?</p>
+                <div class="muestra-respuesta">
+                    <i class="fas fa-triangle-exclamation"></i>
+                    <p><strong>Alergia registrada: penicilina.</strong> La amoxicilina pertenece a ese grupo; elige otra opción.</p>
+                </div>
+                <p class="muestra-fuente">Fuente: ficha técnica en CIMA (AEMPS)</p>
+            </div>
 
-    </div>
+            <p class="contexto-pie">© <?= date("Y") ?> MediCore Professional System</p>
+        </aside>
 
-    <!-- ======================================================
-         SCRIPT
-    ====================================================== -->
+        <!-- Formulario de acceso -->
+        <section class="formulario">
+            <div class="formulario-caja">
+
+                <h1>Iniciar sesión</h1>
+                <p class="formulario-intro">Usa el correo con el que te registraron en MediCore.</p>
+
+                <?php if ($error): ?>
+                    <div class="aviso aviso-error" role="alert">
+                        <i class="fas fa-circle-exclamation"></i>
+                        <span><?= htmlspecialchars($error) ?></span>
+                    </div>
+                <?php endif; ?>
+
+                <?php if ($exito): ?>
+                    <div class="aviso aviso-exito" role="status">
+                        <i class="fas fa-circle-check"></i>
+                        <span><?= htmlspecialchars($exito) ?></span>
+                    </div>
+                <?php endif; ?>
+
+                <form method="POST" action="login.php" id="loginForm" novalidate>
+
+                    <input type="hidden" name="csrf_token" value="<?= generarTokenCSRF() ?>">
+                    <!-- Asegura que el formulario se procese aunque el botón quede deshabilitado al enviar -->
+                    <input type="hidden" name="login" value="1">
+
+                    <div class="campo">
+                        <div class="campo-cab">
+                            <label for="correo">Correo institucional</label>
+                        </div>
+                        <div class="entrada">
+                            <i class="fas fa-envelope" aria-hidden="true"></i>
+                            <input
+                                type="email"
+                                id="correo"
+                                name="correo"
+                                placeholder="doctor@medicore.com"
+                                autocomplete="username"
+                                value="<?= htmlspecialchars($correo_value) ?>"
+                                required
+                                <?= $correo_value === '' ? 'autofocus' : '' ?>>
+                        </div>
+                    </div>
+
+                    <div class="campo">
+                        <div class="campo-cab">
+                            <label for="password">Contraseña</label>
+                            <a href="recuperar_password.php">¿La olvidaste?</a>
+                        </div>
+                        <div class="entrada">
+                            <i class="fas fa-lock" aria-hidden="true"></i>
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                placeholder="Tu contraseña"
+                                autocomplete="current-password"
+                                class="con-boton"
+                                required
+                                <?= $correo_value !== '' ? 'autofocus' : '' ?>>
+                            <button
+                                type="button"
+                                class="ver-clave"
+                                onclick="mostrarPassword()"
+                                aria-label="Mostrar contraseña"
+                                aria-pressed="false">
+                                <i class="fas fa-eye toggle-password" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        <p class="bloq-mayus" id="bloqMayus" aria-live="polite">Bloq Mayús está activado.</p>
+                    </div>
+
+                    <button type="submit" name="login" class="btn-entrar" id="btnLogin">
+                        Ingresar
+                    </button>
+                </form>
+
+                <?php if (apiHabilitada(['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'])): ?>
+                    <div class="separador">o</div>
+                    <a href="oauth_google.php" class="btn-google">
+                        <i class="fab fa-google" aria-hidden="true"></i>
+                        Continuar con Google
+                    </a>
+                <?php endif; ?>
+
+                <a class="volver" href="home.php">
+                    <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                    Volver al portal
+                </a>
+            </div>
+        </section>
+    </main>
 
     <script>
         function mostrarPassword() {
+            const input = document.getElementById("password");
+            const boton = document.querySelector(".ver-clave");
+            const icon = document.querySelector(".toggle-password");
+            const visible = input.type === "password";
 
-            const input =
-                document.getElementById("password");
-
-            const icon =
-                document.querySelector(".toggle-password");
-
-            if (input.type === "password") {
-
-                input.type = "text";
-
-                icon.classList.remove("fa-eye");
-
-                icon.classList.add("fa-eye-slash");
-
-            } else {
-
-                input.type = "password";
-
-                icon.classList.remove("fa-eye-slash");
-
-                icon.classList.add("fa-eye");
-            }
+            input.type = visible ? "text" : "password";
+            icon.classList.toggle("fa-eye", !visible);
+            icon.classList.toggle("fa-eye-slash", visible);
+            boton.setAttribute("aria-pressed", visible ? "true" : "false");
+            boton.setAttribute("aria-label", visible ? "Ocultar contraseña" : "Mostrar contraseña");
+            input.focus();
         }
-    </script>
 
+        (function () {
+            const form = document.getElementById("loginForm");
+            const boton = document.getElementById("btnLogin");
+            const clave = document.getElementById("password");
+            const aviso = document.getElementById("bloqMayus");
+
+            // Aviso de Bloq Mayús mientras se escribe la contraseña
+            ["keydown", "keyup"].forEach(function (evento) {
+                clave.addEventListener(evento, function (e) {
+                    if (typeof e.getModifierState === "function") {
+                        aviso.classList.toggle("visible", e.getModifierState("CapsLock"));
+                    }
+                });
+            });
+            clave.addEventListener("blur", function () {
+                aviso.classList.remove("visible");
+            });
+
+            form.addEventListener("submit", function (e) {
+                if (!form.checkValidity()) {
+                    e.preventDefault();
+                    form.reportValidity();
+                    return;
+                }
+                // Evita dobles envíos mientras el servidor responde
+                boton.disabled = true;
+                boton.setAttribute("aria-busy", "true");
+                boton.textContent = "Verificando…";
+            });
+        })();
+    </script>
 </body>
 
 </html>
