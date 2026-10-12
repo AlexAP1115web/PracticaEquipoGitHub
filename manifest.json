@@ -77,5 +77,21 @@
         }
       ]
     }
+  ],
+  "screenshots": [
+    {
+      "src": "assets/screenshots/escritorio.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Portal de MediCore en la computadora"
+    },
+    {
+      "src": "assets/screenshots/movil.png",
+      "sizes": "780x1688",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "MediCore en el celular"
+    }
   ]
 }

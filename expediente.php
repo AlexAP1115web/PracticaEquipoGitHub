@@ -830,7 +830,7 @@ $titulosSOAP = [
 
     </div>
 
-    <script src="assets/js/nota-voz.js?v=2" defer></script>
+    <script src="assets/js/nota-voz.js?v=3" defer></script>
 
     <script>
         function calcularIMC() {

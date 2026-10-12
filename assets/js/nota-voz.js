@@ -79,11 +79,30 @@
     estado.classList.toggle('grabando', !!grabando);
   }
 
-  function agregarDictado(frase) {
-    frase = frase.trim();
-    if (!frase) return;
-    const actual = texto.value.replace(/\s+$/, '');
-    texto.value = actual ? actual + ' ' + frase : frase.charAt(0).toUpperCase() + frase.slice(1);
+  // Texto que ya había antes de empezar (o reiniciar) el dictado
+  let textoBase = '';
+
+  // En Android cada resultado trae todo lo dicho antes ("refiere", "refiere dolor"...)
+  // y en computadora cada resultado es un pedazo nuevo. Así se juntan sin repetir.
+  function unirFrases(lista) {
+    let sesion = '';
+    lista.forEach(function (frase) {
+      frase = frase.trim();
+      if (!frase) return;
+      const a = sesion.toLowerCase();
+      const b = frase.toLowerCase();
+      if (!sesion || b.startsWith(a)) {
+        sesion = frase;
+      } else if (!a.endsWith(b)) {
+        sesion = sesion + ' ' + frase;
+      }
+    });
+    return sesion;
+  }
+
+  function escribirDictado(sesion) {
+    if (!sesion) return;
+    texto.value = textoBase ? textoBase + ' ' + sesion : sesion.charAt(0).toUpperCase() + sesion.slice(1);
     seDicto = true;
   }
 
@@ -105,16 +124,14 @@
     reconocedor.interimResults = true;
 
     reconocedor.onresult = function (evento) {
-      let enCurso = '';
-      for (let i = evento.resultIndex; i < evento.results.length; i++) {
+      const finales = [];
+      const enCurso = [];
+      for (let i = 0; i < evento.results.length; i++) {
         const resultado = evento.results[i];
-        if (resultado.isFinal) {
-          agregarDictado(resultado[0].transcript);
-        } else {
-          enCurso += resultado[0].transcript;
-        }
+        (resultado.isFinal ? finales : enCurso).push(resultado[0].transcript);
       }
-      parcial.textContent = enCurso;
+      escribirDictado(unirFrases(finales));
+      parcial.textContent = enCurso.length ? enCurso[enCurso.length - 1].trim() : '';
     };
 
     reconocedor.onerror = function (evento) {
@@ -145,6 +162,7 @@
 
         try {
           ultimoInicio = Date.now();
+          textoBase = texto.value.replace(/\s+$/, '');
           reconocedor.start();
         } catch (e) {
           detenerDictado();
@@ -156,6 +174,7 @@
 
     ultimoInicio = Date.now();
     reiniciosRapidos = 0;
+    textoBase = texto.value.replace(/\s+$/, '');
     reconocedor.start();
     escuchando = true;
     btnDictar.setAttribute('aria-pressed', 'true');
