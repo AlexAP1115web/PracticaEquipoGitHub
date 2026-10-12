@@ -1,17 +1,7 @@
 <?php
 /* =====================================================
-   MEDICORE PROFESSIONAL SYSTEM
-   AVISO DE PRIVACIDAD SIMPLIFICADO
-   -----------------------------------------------------
-   Página pública (no requiere sesión). Cumple con el
-   contenido mínimo del Art. 22 del Reglamento de la Ley
-   Federal de Protección de Datos Personales en Posesión
-   de los Particulares (LFPDPPP):
-     1. Identidad del responsable.
-     2. Finalidades del tratamiento.
-     3. Mecanismos para conocer el aviso integral.
-     4. Medios para ejercer los derechos ARCO.
-     5. Transferencias de datos, cuando existan.
+   AVISO DE PRIVACIDAD SIMPLIFICADO (página pública)
+   Lleva lo mínimo que pide el Art. 22 del Reglamento de la LFPDPPP
 ===================================================== */
 ?>
 <!DOCTYPE html>

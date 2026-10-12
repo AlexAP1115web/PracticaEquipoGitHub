@@ -1,17 +1,10 @@
-// sw.js - Service Worker de MediCore (sistema medico)
-//
-// Importante: este sistema maneja datos de pacientes, por eso las paginas
-// PHP NUNCA se guardan en cache. Solo se guardan archivos estaticos
-// (estilos, logo, iconos) y una pagina "sin conexion" para mostrar
-// cuando no hay internet.
-//
-// Las notas de consulta que se guardan sin internet esperan en IndexedDB
-// (assets/js/cola-notas.js) y este service worker las manda con
-// Background Sync en cuanto vuelve la conexion (seccion 6).
+// sw.js - Service Worker de MediCore
+// Las paginas PHP NUNCA se cachean (traen datos de pacientes), solo estaticos y offline.html.
+// Tambien manda las notas guardadas sin internet con Background Sync (seccion 6)
 
 importScripts('assets/js/cola-notas.js');
 
-const VERSION = 'medicore-admin-v4';
+const VERSION = 'medicore-admin-v5';
 
 // Rutas relativas a la carpeta donde esta sw.js
 const BASE = self.registration.scope;
@@ -67,8 +60,7 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(peticion.url);
 
-  // Paginas (PHP): siempre desde el servidor. Si no hay internet,
-  // se muestra offline.html en lugar del error del navegador.
+  // Paginas PHP siempre de la red, sin internet se muestra offline.html
   if (peticion.mode === 'navigate') {
     event.respondWith(
       fetch(peticion).catch(() => caches.match(OFFLINE))
@@ -84,9 +76,7 @@ self.addEventListener('fetch', (event) => {
 
   // Estaticos propios y librerias externas: stale-while-revalidate
   if ((esPropio && ES_ESTATICO.test(url.pathname)) || esExterno) {
-    // Las paginas piden style.css?v=<hora> para evitar el cache del
-    // navegador; aqui se guarda sin el ?v= para no llenar el cache
-    // con una copia nueva en cada recarga.
+    // style.css?v=<hora> se guarda sin el ?v= para no llenar el cache con una copia por recarga
     const clave = esPropio ? url.origin + url.pathname : peticion;
 
     event.respondWith(
@@ -107,9 +97,7 @@ self.addEventListener('fetch', (event) => {
   }
 });
 
-// 4. PUSH: el servidor manda un aviso sin contenido; el service worker
-// pide a api/push.php los mensajes pendientes de esta suscripcion y
-// los muestra como notificaciones del sistema.
+// 4. PUSH: el aviso llega vacio, los mensajes se piden a api/push.php?accion=pendientes
 const ICONO = new URL('assets/icons/icon-192.png', BASE).href;
 
 self.addEventListener('push', (event) => {
@@ -167,10 +155,8 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// 6. BACKGROUND SYNC: manda las notas de consulta guardadas sin conexion.
-// El navegador dispara este evento cuando vuelve el internet, aunque
-// MediCore ya este cerrado. Si la red vuelve a fallar, se lanza un error
-// para que el navegador lo reintente mas tarde.
+// 6. BACKGROUND SYNC: manda las notas guardadas sin conexion aunque MediCore este cerrado.
+// Si la red falla otra vez se lanza error para que el navegador reintente
 self.addEventListener('sync', (event) => {
   if (event.tag === 'enviar-notas') {
     event.waitUntil(sincronizarNotas());

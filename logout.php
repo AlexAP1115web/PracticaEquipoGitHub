@@ -3,7 +3,7 @@
 /**
  * ======================================================
  * MediCore Professional System
- * Secure Logout Controller
+ * Cierre de sesión
  * ======================================================
  */
 

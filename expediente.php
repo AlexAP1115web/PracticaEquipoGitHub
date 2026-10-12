@@ -96,16 +96,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     $plan_entrenamiento = limpiar($_POST['plan_entrenamiento'] ?? '');
 
-    // Alergias conocidas del paciente (se guardan en la tabla usuarios)
+    // Las alergias van en la tabla usuarios, no en expedientes
     $alergias = mb_substr(trim(strip_tags($_POST['alergias'] ?? '')), 0, 255);
 
-    // Catálogo de enfermedades (opcional): no rompe expedientes existentes
-    // que no tengan ninguna enfermedad vinculada todavía.
+    // Enfermedad del catálogo, es opcional (hay expedientes viejos sin ninguna)
     $enfermedad_id = !empty($_POST['enfermedad_id']) ? intval($_POST['enfermedad_id']) : null;
 
-    // Liga de videollamada (Jitsi Meet, sin costo ni API key). Se genera de
-    // forma determinística a partir del paciente y la fecha/hora de la cita,
-    // así que cambia solo si la cita cambia.
+    // Liga de Jitsi Meet (gratis, sin API key). Sale del paciente + fecha y hora,
+    // así que solo cambia si se mueve la cita
     $video_link = null;
 
     if (!empty($fecha_cita)) {
@@ -251,9 +249,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $stmt_refresh->close();
 
             /* ==================================================
-               NOTIFICACIONES NO BLOQUEANTES (no rompen el guardado
-               del expediente si SendGrid/Calendar fallan o no
-               están configurados)
+               NOTIFICACIONES (correo y Google Calendar)
+               si fallan o no están configurados no se cae el guardado
             ================================================== */
 
             if (!empty($fecha_cita) && !empty($paciente['email'])) {
@@ -833,7 +830,7 @@ $titulosSOAP = [
 
     </div>
 
-    <script src="assets/js/nota-voz.js?v=1" defer></script>
+    <script src="assets/js/nota-voz.js?v=2" defer></script>
 
     <script>
         function calcularIMC() {

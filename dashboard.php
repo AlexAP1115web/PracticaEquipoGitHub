@@ -19,11 +19,7 @@ $id_medico = (int) (
    OBTENER DATOS DEL MÉDICO
 ====================================================== */
 
-// Antes esta consulta hacía "WHERE id = ? OR correo = ?" pasando el
-// mismo valor como texto a las dos columnas. Comparar la columna id
-// (INT) contra un correo hace que MySQL lo convierta a 0, así que la
-// mitad de la condición nunca servía de nada. El id del médico ya se
-// guarda en la sesión al iniciar sesión, así que basta con buscarlo.
+// Se busca solo por id, ya viene en la sesión desde el login
 $nombre_medico = $_SESSION['nombre_medico'] ?? 'Doctor';
 
 if ($id_medico > 0) {

@@ -3,18 +3,8 @@
 /* =====================================================
    MEDICORE PROFESSIONAL SYSTEM
    ESCÁNER DE MEDICAMENTOS (foto de la caja o el frasco)
-   -----------------------------------------------------
-   1) Gemini lee la foto y devuelve el nombre comercial y
-      el principio activo de cada medicamento que aparece.
-   2) Cada principio activo se busca en CIMA (AEMPS).
-   3) Se cruza con las alergias del paciente elegido,
-      aunque el producto no exista en CIMA (marcas de
-      México), para que el aviso de alergia no se pierda.
-   4) Del primer medicamento encontrado se resume para qué
-      sirve y cuándo no usarlo (secciones 4.1 y 4.3).
-
-   La foto NO se guarda en el servidor: solo se manda a
-   Gemini para leerla y se descarta.
+   Gemini lee la foto, se busca en CIMA y se revisan las alergias del paciente.
+   La foto no se guarda en el servidor
 ===================================================== */
 
 require_once __DIR__ . '/GeminiAI.php';
@@ -22,9 +12,7 @@ require_once __DIR__ . '/CimaAPI.php';
 require_once __DIR__ . '/Alergias.php';
 
 if (!function_exists('leerFotoMedicamento')) {
-    /**
-     * @return array|null ['es_medicamento' => bool, 'medicamentos' => [...]] o null si Gemini no respondió.
-     */
+    // null si Gemini no respondió
     function leerFotoMedicamento($tipoMime, $base64)
     {
         $texto = geminiAnalizarImagen(
@@ -87,9 +75,6 @@ if (!function_exists('leerFotoMedicamento')) {
 }
 
 if (!function_exists('escanearMedicamento')) {
-    /**
-     * @return array Respuesta lista para enviarse como JSON al navegador.
-     */
     function escanearMedicamento($conexion, $medicoId, $tipoMime, $base64, $pacienteId = null)
     {
         $lectura = leerFotoMedicamento($tipoMime, $base64);
@@ -139,7 +124,7 @@ if (!function_exists('escanearMedicamento')) {
                 $cima = cimaBuscarMedicamento($m['nombre_detectado']);
             }
 
-            // Se revisan alergias con todo lo que se leyó, esté o no en CIMA
+            // Alergias con todo lo leído aunque no esté en CIMA (marcas de México)
             $textoRevision = trim(
                 $m['nombre_detectado'] . ' ' . implode(' ', $m['principios']) .
                     ($cima ? ' ' . $cima['nombre'] . ' ' . $cima['principio'] : '')

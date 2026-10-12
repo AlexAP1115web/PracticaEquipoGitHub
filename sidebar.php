@@ -54,8 +54,7 @@ if (
     }
 }
 
-/* Citas de hoy: se muestran junto a "Agenda" y, en la app instalada,
-   como número sobre el ícono (Badging API, ver assets/js/pwa.js). */
+/* Citas de hoy, junto a "Agenda" y en el ícono de la app (pwa.js) */
 $citas_hoy_sidebar = 0;
 
 if (isset($conexion) && $conexion instanceof mysqli) {
@@ -190,7 +189,7 @@ $menu_items = [
         <span>Cerrar Sesión</span>
     </a>
 
-    <!-- Datos para la PWA: número sobre el ícono y envío de notas pendientes -->
+    <!-- Lo lee pwa.js (citas en el ícono y notas pendientes) -->
     <div
         id="datos-pwa"
         hidden

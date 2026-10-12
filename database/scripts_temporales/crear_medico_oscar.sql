@@ -1,6 +1,6 @@
--- Crea la cuenta de médico para Oscar Estrada Pacheco
--- Contraseña temporal (sin cifrar, solo para que se la compartas): MediCore2026!
--- Sin teléfono registrado => no le pedirá OTP al iniciar sesión.
+-- Cuenta de médico para Oscar
+-- Contraseña temporal: MediCore2026!
+-- Sin teléfono, no le pide OTP
 
 INSERT INTO medicos (nombre, correo, password)
 VALUES (

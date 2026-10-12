@@ -1,8 +1,7 @@
 #!/bin/sh
 set -e
 
-# Railway inyecta el puerto real en $PORT en tiempo de ejecución.
-# Si no existe (por ejemplo corriendo el contenedor local), usa 8080.
+# Railway manda el puerto en $PORT, en local se usa 8080
 PORT="${PORT:-8080}"
 
 echo "Configurando Apache para escuchar en el puerto: $PORT"

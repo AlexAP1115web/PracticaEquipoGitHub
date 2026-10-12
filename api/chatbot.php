@@ -1,18 +1,9 @@
 <?php
 
 /* =====================================================
-   MEDICORE PROFESSIONAL SYSTEM
    API: ASISTENTE DE MEDICAMENTOS
-   -----------------------------------------------------
-   POST api/chatbot.php
-   Cabecera X-CSRF-Token + cuerpo JSON:
-     { "pregunta": "...", "paciente_id": 15 }
-
-   Seguridad:
-   - Solo médicos con sesión iniciada.
-   - Token CSRF en la cabecera.
-   - Máximo 15 consultas cada 5 minutos por sesión.
-   - Pregunta de máximo 300 caracteres.
+   POST con cabecera X-CSRF-Token y JSON { "pregunta": "...", "paciente_id": 15 }
+   Solo médicos con sesión, máx. 15 consultas cada 5 min
 ===================================================== */
 
 require_once __DIR__ . '/../config.php';
@@ -45,7 +36,7 @@ if (!tokenCSRFValido($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '')) {
     responderJson(403, ['ok' => false, 'mensaje' => 'La página expiró. Recárgala e intenta de nuevo.']);
 }
 
-// Límite de uso por sesión (protege las APIs externas)
+// Límite por sesión para no acabarnos la cuota de las APIs
 $ahora = time();
 $_SESSION['chatbot_uso'] = array_values(array_filter(
     $_SESSION['chatbot_uso'] ?? [],

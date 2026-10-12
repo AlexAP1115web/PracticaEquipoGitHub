@@ -3,11 +3,8 @@
 /* =====================================================
    MEDICORE PROFESSIONAL SYSTEM
    INTEGRACIÓN: OPENWEATHER (clima actual)
-   -----------------------------------------------------
-   Cuenta gratuita: https://openweathermap.org/api
-   Implementado con cURL puro. Si OPENWEATHER_API_KEY no
-   está configurada, regresa null y el módulo de
-   Recomendaciones simplemente oculta la sección de clima.
+   Usa OPENWEATHER_API_KEY (cuenta gratis en https://openweathermap.org/api),
+   sin llave regresa null y Recomendaciones no muestra el clima
 ===================================================== */
 
 require_once __DIR__ . '/../config/apis.php';

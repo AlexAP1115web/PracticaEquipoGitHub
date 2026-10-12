@@ -6,7 +6,7 @@ verificarSesion();
 
 /* ======================================================
    OBTENER PACIENTES
-   Nota: no se usa u.sexo porque tu tabla usuarios no tiene esa columna.
+   sin u.sexo, la tabla usuarios no tiene esa columna
 ====================================================== */
 
 $colFecha = columnaFechaAlta();

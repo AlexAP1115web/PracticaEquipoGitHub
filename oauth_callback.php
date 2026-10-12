@@ -5,10 +5,7 @@ require_once __DIR__ . "/integrations/GoogleOAuth.php";
 
 /* ======================================================
    CALLBACK DE GOOGLE OAUTH2
-   Solo permite iniciar sesión a médicos que YA existen en
-   la tabla "medicos" (por correo). No crea cuentas nuevas
-   automáticamente: mantiene el control de acceso (RBAC) del
-   sistema en manos del administrador.
+   Solo entran médicos que ya están en la tabla medicos, no se crean cuentas
 ====================================================== */
 
 if (!googleOAuthDisponible()) {
@@ -67,7 +64,7 @@ if (!$medico) {
     redirigir("login.php?error=denegado");
 }
 
-// Si el médico existía por correo pero aún no tenía vinculada su cuenta de Google, se vincula ahora.
+// Si existía por correo pero sin google_id, se vincula aquí
 if (empty($medico['google_id']) && !empty($googleId)) {
     $vincular = $conexion->prepare("UPDATE medicos SET google_id = ? WHERE id = ?");
     $vincular->bind_param("si", $googleId, $medico['id']);
@@ -77,9 +74,8 @@ if (empty($medico['google_id']) && !empty($googleId)) {
     registrarLog("Cuenta de Google vinculada al médico ID {$medico['id']}.", "INFO");
 }
 
-// Si Google devolvió un refresh_token (ocurre la primera vez que se
-// autoriza el scope de Calendar), se guarda para poder sincronizar
-// citas sin necesidad de que el médico esté conectado en ese momento.
+// El refresh_token solo llega la primera vez que se autoriza Calendar,
+// se guarda para poder sincronizar citas después
 if (!empty($token['refresh_token'])) {
 
     $guardarCalendar = $conexion->prepare("

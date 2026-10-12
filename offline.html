@@ -33,7 +33,7 @@
   </div>
   <script src="assets/js/cola-notas.js"></script>
   <script>
-    // Notas de consulta que esperan en este dispositivo para enviarse
+    // Avisa si hay notas esperando en la cola
     if (window.MediCoreCola) {
       MediCoreCola.listar().then(function (notas) {
         if (notas.length > 0) {
@@ -45,7 +45,7 @@
         }
       }).catch(function () {});
     }
-    // Al volver la conexión se recarga la página que se estaba abriendo
+    // Cuando regresa el internet se recarga sola
     window.addEventListener('online', function () { location.reload(); });
   </script>
 </body>

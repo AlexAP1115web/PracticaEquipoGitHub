@@ -1,20 +1,6 @@
 /* =====================================================
    MEDICORE PROFESSIONAL SYSTEM
-   Hoja de estilos del panel médico (versión 2)
-   -----------------------------------------------------
-   Idea del diseño: hojas blancas de expediente sobre un
-   fondo gris verdoso, bordes finos en lugar de sombras y
-   un solo verde para las acciones. Las alertas clínicas
-   (alergias, pendientes) son lo único con color fuerte.
-
-   Colores
-     pino    #0E3B2C  menú lateral y títulos
-     verde   #00843D  botones y enlaces (color de marca)
-     menta   #E4F1E8  seleccionado y fondos suaves
-     papel   #F4F7F5  fondo de la aplicación
-     línea   #D9E2DC  bordes
-   Tipografía: Onest (una sola familia, números tabulares
-   en tablas y cifras).
+   Estilos del panel médico (v2), fuente Onest
 ===================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&display=swap');
@@ -42,7 +28,7 @@
     --ok:#067647;
     --ok-fondo:#E3F4EA;
 
-    /* Nombres anteriores (los usan algunas páginas con estilos propios) */
+    /* Nombres viejos, todavía los usan algunas páginas */
     --primary:var(--verde);
     --primary-dark:var(--verde-oscuro);
     --primary-light:var(--menta);
@@ -342,7 +328,7 @@ p{
     max-width:calc(1240px + var(--sidebar-width));
 }
 
-/* Encabezado de página: título y una línea de contexto */
+/* Encabezado de página */
 .top-header,
 .agenda-header,
 .report-header,
@@ -371,7 +357,7 @@ p{
     font-size:15px;
 }
 
-/* Bienvenida del dashboard: el único bloque oscuro del panel */
+/* Bienvenida del dashboard */
 .dashboard-header{
     position:relative;
     overflow:hidden;
@@ -608,7 +594,7 @@ input[type="hidden"] + .section-title{
     background:var(--verde-oscuro);
 }
 
-/* Acciones secundarias: contorno */
+/* Botones secundarios (solo borde) */
 .btn-success,
 .btn-refresh{
     background:var(--hoja);
@@ -693,7 +679,7 @@ button:disabled{
 }
 
 /* =====================================================
-   CIFRAS (stats): una sola tira dividida por líneas
+   CIFRAS (stats)
 ===================================================== */
 
 .stats-grid,
@@ -885,7 +871,7 @@ tbody tr:hover{
     color:var(--pino);
 }
 
-/* Datos cortos en una sola línea; la tabla se desplaza si no cabe */
+/* Datos cortos sin salto de línea (la tabla hace scroll) */
 td.patient-name,
 td.patient-id,
 td.correo,
@@ -1131,7 +1117,7 @@ textarea{
     color:#7A4405;
 }
 
-/* Clases sueltas antiguas usadas como texto de estado */
+/* Clases viejas de texto de estado */
 .success{ color:var(--ok); }
 .error{ color:var(--alerta); }
 .warning{ color:var(--precaucion); }
@@ -1536,7 +1522,7 @@ form.toolbar .btn-success:last-child{
    UTILIDADES
 ===================================================== */
 
-/* El atributo hidden siempre gana, aunque la clase del botón defina display */
+/* Que [hidden] funcione aunque la clase tenga display */
 [hidden]{
     display:none !important;
 }
@@ -1566,7 +1552,7 @@ form.toolbar .btn-success:last-child{
     font-variant-numeric:tabular-nums;
 }
 
-/* Aviso flotante (notas enviadas al volver la conexión) */
+/* Aviso flotante cuando se mandan las notas pendientes */
 .aviso-flotante{
     position:fixed;
     right:24px;

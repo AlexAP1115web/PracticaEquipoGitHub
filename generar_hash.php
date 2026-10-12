@@ -3,10 +3,10 @@ require_once("config.php");
 
 /* ======================================================
    MEDICORE SECURITY HASH GENERATOR
-   Herramienta Administrativa Profesional
+   Genera el hash bcrypt de una contraseña para darla de alta
 ====================================================== */
 
-// Opcional: proteger herramienta con sesión
+// Descomentar para que pida sesión
 // verificarSesion();
 
 $hash_generado = "";

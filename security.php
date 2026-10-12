@@ -1,34 +1,15 @@
 <?php
 // ======================================================
 // MEDICORE SECURITY CORE v3.3
-// Sistema RASP + Protección Perimetral Empresarial
-// ------------------------------------------------------
-// Este archivo COMPLEMENTA a config.php, no lo duplica.
-//
-// Antes, config.php y security.php definían las mismas
-// funciones (limpiar, generarTokenCSRF, validarTokenCSRF,
-// verificarSesion, registrarLog, redirigir). Como todas
-// las páginas incluyen config.php primero y las dos
-// versiones estaban protegidas con function_exists(),
-// las de security.php nunca llegaban a usarse: editar
-// este archivo no cambiaba nada del comportamiento real,
-// y además las dos versiones no coincidían (SameSite
-// Strict contra Lax, 14400 contra 7200 segundos de
-// inactividad, y dos archivos de log distintos).
-//
-// Ahora config.php es la única fuente de esas funciones
-// y aquí sólo queda lo que es propio de este archivo:
-// cabeceras de seguridad, control de intentos y utilidades.
+// Headers de seguridad, límite de intentos y utilidades.
+// Sesión, CSRF y logs están en config.php
 // ======================================================
 
 require_once __DIR__ . '/config.php';
 
 /* ======================================================
    HEADERS SEGUROS
-   ------------------------------------------------------
-   frame-src es necesario para el <iframe> del mapa en
-   ubicacion.php: sin declararlo hereda default-src 'self'
-   y el navegador bloquea el mapa de Google en silencio.
+   frame-src hace falta para el iframe del mapa en ubicacion.php
 ====================================================== */
 
 if (!headers_sent()) {

@@ -3,21 +3,8 @@
 /* =====================================================
    MEDICORE PROFESSIONAL SYSTEM
    ASISTENTE DE MEDICAMENTOS (chatbot)
-   -----------------------------------------------------
-   Flujo de cada pregunta:
-   1. Detecta el tema (efectos secundarios, alergias,
-      contraindicaciones, interacciones, dosis, embarazo,
-      advertencias o para qué sirve).
-   2. Identifica el medicamento: primero por palabras de la
-      pregunta, si no, con Gemini, y si tampoco, usa el
-      último medicamento consultado en la conversación.
-   3. Consulta la sección correspondiente de la ficha
-      técnica oficial en CIMA (AEMPS).
-   4. Cruza el medicamento con las alergias del paciente
-      seleccionado (integrations/Alergias.php).
-   5. Si hay llave de Gemini, la IA resume el texto oficial;
-      si no, se muestra el texto oficial recortado.
-   6. Guarda la consulta en chatbot_consultas.
+   Saca tema y medicamento de la pregunta, busca la sección en la ficha de CIMA,
+   revisa alergias del paciente y si hay llave de Gemini resume el texto
 ===================================================== */
 
 require_once __DIR__ . '/Alergias.php';
@@ -73,9 +60,7 @@ if (!function_exists('temasChatbot')) {
 }
 
 if (!function_exists('detectarTemaChatbot')) {
-    /**
-     * @param bool $explicito Se vuelve true si la pregunta menciona el tema.
-     */
+    // $explicito queda en true si la pregunta sí trae el tema, si no regresa 'efectos'
     function detectarTemaChatbot($pregunta, &$explicito = null)
     {
         $texto = ' ' . normalizarTextoClinico($pregunta) . ' ';
@@ -96,9 +81,7 @@ if (!function_exists('detectarTemaChatbot')) {
 }
 
 if (!function_exists('alergiasMencionadas')) {
-    /**
-     * "mi paciente es alérgico a la penicilina" -> ['penicilina']
-     */
+    // "mi paciente es alérgico a la penicilina" regresa ['penicilina']
     function alergiasMencionadas($pregunta)
     {
         $texto = normalizarTextoClinico($pregunta);
@@ -110,11 +93,7 @@ if (!function_exists('alergiasMencionadas')) {
 }
 
 if (!function_exists('candidatosMedicamento')) {
-    /**
-     * Quita palabras comunes y del tema, y devuelve los posibles
-     * nombres de medicamento: primero la frase completa restante y
-     * luego cada palabra, de la más larga a la más corta.
-     */
+    // Posibles nombres del medicamento: la frase sin palabras comunes y luego cada palabra (la más larga primero)
     function candidatosMedicamento($pregunta)
     {
         $vacias = [
@@ -191,9 +170,6 @@ if (!function_exists('identificarConGemini')) {
 }
 
 if (!function_exists('responderConsultaMedicamento')) {
-    /**
-     * @return array Respuesta lista para enviarse como JSON al navegador.
-     */
     function responderConsultaMedicamento($conexion, $medicoId, $pregunta, $pacienteId = null)
     {
         $temas = temasChatbot();
@@ -223,8 +199,7 @@ if (!function_exists('responderConsultaMedicamento')) {
             }
         }
 
-        // Pregunta de seguimiento ("¿y sus interacciones?"): solo si la pregunta
-        // trae un tema y no menciona ningún otro posible medicamento
+        // Seguimiento tipo "¿y sus interacciones?", se usa el último medicamento consultado
         if (!$medicamento && $temaExplicito && empty($candidatos) && !empty($_SESSION['chatbot_ultimo_medicamento'])) {
             $medicamento = $_SESSION['chatbot_ultimo_medicamento'];
         }

@@ -2,24 +2,12 @@
 -- MEDICORE PROFESSIONAL SYSTEM
 -- ESQUEMA DE BASE DE DATOS (MySQL / MariaDB - XAMPP)
 -- =====================================================
--- Este archivo documenta las tablas que el sistema ya usa
--- (inferidas del código, ya que no existía un .sql previo)
--- y agrega las tablas/columnas nuevas necesarias para las
--- mejoras: recuperación de contraseña, OTP, login con
--- Google, catálogo de enfermedades, videollamadas y
--- sucursales/ubicación.
---
--- CÓMO USARLO:
--- 1. Abre phpMyAdmin -> base de datos "MediCore_db" -> pestaña SQL.
--- 2. Pega y ejecuta este archivo completo UNA SOLA VEZ.
---    Las tablas existentes usan "CREATE TABLE IF NOT EXISTS",
---    así que no se dañan tus datos actuales si ya existen.
--- 3. Los "ALTER TABLE" agregan columnas nuevas; si ya las
---    ejecutaste antes, quita esas líneas para no duplicar.
+-- Correr una sola vez en phpMyAdmin (MediCore_db, pestaña SQL).
+-- Si los ALTER TABLE ya se corrieron antes, quitarlos.
 -- =====================================================
 
 -- -----------------------------------------------------
--- TABLAS EXISTENTES (documentadas, no destructivas)
+-- TABLAS QUE YA EXISTÍAN
 -- -----------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS medicos (
@@ -73,10 +61,10 @@ CREATE TABLE IF NOT EXISTS contactos (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -----------------------------------------------------
--- TABLAS NUEVAS (para las integraciones y módulos)
+-- TABLAS NUEVAS
 -- -----------------------------------------------------
 
--- Recuperación de contraseña vía SendGrid
+-- Recuperar contraseña (SendGrid)
 CREATE TABLE IF NOT EXISTS password_resets (
     id INT AUTO_INCREMENT PRIMARY KEY,
     medico_id INT NOT NULL,
@@ -89,7 +77,7 @@ CREATE TABLE IF NOT EXISTS password_resets (
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Códigos OTP vía Twilio (segundo factor opcional)
+-- Códigos OTP por SMS (Twilio)
 CREATE TABLE IF NOT EXISTS otp_codes (
     id INT AUTO_INCREMENT PRIMARY KEY,
     medico_id INT NOT NULL,
@@ -102,7 +90,7 @@ CREATE TABLE IF NOT EXISTS otp_codes (
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Catálogo de tipos de enfermedades
+-- Catálogo de enfermedades
 CREATE TABLE IF NOT EXISTS enfermedades (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(150) NOT NULL,
@@ -112,7 +100,7 @@ CREATE TABLE IF NOT EXISTS enfermedades (
     creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Sucursales / clínicas para el módulo de Ubicación (Google Maps)
+-- Sucursales para el módulo de Ubicación (Maps)
 CREATE TABLE IF NOT EXISTS sucursales (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(150) NOT NULL,
@@ -124,30 +112,29 @@ CREATE TABLE IF NOT EXISTS sucursales (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -----------------------------------------------------
--- COLUMNAS NUEVAS EN TABLAS EXISTENTES
--- (ejecutar UNA SOLA VEZ; si ya existen, quita la línea)
+-- COLUMNAS NUEVAS (solo una vez)
 -- -----------------------------------------------------
 
--- Login con Google OAuth2 (vincula la cuenta de Google al médico)
+-- Login con Google
 ALTER TABLE medicos ADD COLUMN google_id VARCHAR(255) NULL UNIQUE AFTER foto_perfil;
 
--- Teléfono del médico, requerido para enviar el código OTP por Twilio
+-- Teléfono para mandar el OTP
 ALTER TABLE medicos ADD COLUMN telefono VARCHAR(20) NULL AFTER google_id;
 
--- Vinculación con Google Calendar (para sincronizar citas)
+-- Google Calendar
 ALTER TABLE medicos ADD COLUMN google_refresh_token TEXT NULL AFTER telefono;
 ALTER TABLE medicos ADD COLUMN google_calendar_conectado TINYINT(1) NOT NULL DEFAULT 0 AFTER google_refresh_token;
 
--- Liga de videollamada (Jitsi Meet) generada por cita
+-- Liga de Jitsi de cada cita
 ALTER TABLE expedientes ADD COLUMN video_link VARCHAR(255) NULL AFTER hora_cita;
 
--- Relación opcional con el catálogo de enfermedades (no obliga a usarlo)
+-- Enfermedad del catálogo (opcional)
 ALTER TABLE expedientes ADD COLUMN enfermedad_id INT NULL AFTER video_link;
 ALTER TABLE expedientes ADD CONSTRAINT fk_expedientes_enfermedad
     FOREIGN KEY (enfermedad_id) REFERENCES enfermedades(id) ON DELETE SET NULL;
 
 -- -----------------------------------------------------
--- DATOS DE EJEMPLO (opcional, para probar los módulos nuevos)
+-- DATOS DE PRUEBA
 -- -----------------------------------------------------
 
 INSERT INTO enfermedades (nombre, categoria, descripcion, recomendaciones) VALUES

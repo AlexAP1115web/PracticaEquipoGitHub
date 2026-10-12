@@ -1,6 +1,6 @@
-// Asistente de Medicamentos - MediCore
-// Envía la pregunta (o la foto de un medicamento) a la API y pinta la respuesta.
-// Todo el texto que llega del servidor se escapa antes de mostrarse.
+// Asistente de medicamentos (chatbot.php)
+// Manda la pregunta o la foto a la API y pinta la respuesta.
+// Lo que viene del servidor siempre pasa por escapar() antes de ir al innerHTML
 
 (function () {
   const form = document.getElementById('formChat');
@@ -21,7 +21,7 @@
     return div.innerHTML;
   }
 
-  // Convierte el texto (ya escapado) en párrafos y listas; solo permite **negritas**
+  // Escapa y luego arma párrafos y listas, solo deja pasar las **negritas**
   function formatear(texto) {
     const lineas = escapar(texto).split(/\n+/);
     let html = '';
@@ -66,7 +66,7 @@
       ' ' + dos(fecha.getHours()) + ':' + dos(fecha.getMinutes());
   }
 
-  // "Tus últimas consultas" se actualiza sin recargar la página
+  // Actualiza "Tus últimas consultas" sin recargar (máx. 8)
   function agregarAlHistorial(pregunta, medicamento, paciente) {
     if (!historial) return;
 
@@ -183,7 +183,7 @@
 
   /* ---------- Escanear medicamento con la cámara ---------- */
 
-  // Reduce la foto en el navegador (máx. 1280 px, JPEG) para que suba rápido
+  // Se achica a 1280 px en JPEG para que no tarde en subir
   function prepararFoto(archivo) {
     return new Promise(function (resolver, rechazar) {
       const lector = new FileReader();
@@ -306,7 +306,7 @@
       if (archivo) escanear(archivo);
     });
 
-    // Atajo "Escanear medicamento" desde el ícono de la app
+    // Shortcut del manifest (?escanear=1)
     if (new URLSearchParams(location.search).get('escanear') === '1') {
       botonFoto.classList.add('resaltado');
       botonFoto.focus();
@@ -323,7 +323,7 @@
     enviar(pregunta);
   });
 
-  // Sugerencias fijas y botones que aparecen después de escanear
+  // Sugerencias fijas y las que salen después de escanear
   document.addEventListener('click', function (e) {
     const b = e.target.closest('.sugerencias button, .escaneo-acciones button');
     if (b && !boton.disabled) {

@@ -3,21 +3,8 @@
 /* =====================================================
    MEDICORE PROFESSIONAL SYSTEM
    INTEGRACIÓN: GOOGLE GEMINI (IA generativa)
-   -----------------------------------------------------
-   Se usa para:
-   1) entender qué medicamento y qué tema pregunta el
-      médico cuando la pregunta no es obvia,
-   2) resumir en lenguaje claro el texto oficial de CIMA,
-   3) leer el nombre del medicamento en una foto de la
-      caja o el frasco (escáner), y
-   4) ordenar en formato SOAP la nota de consulta que el
-      médico dicta por voz.
-
-   Llave gratuita: https://aistudio.google.com/apikey
-   Variables: GEMINI_API_KEY y, opcional, GEMINI_MODEL.
-   Si no hay llave, el asistente sigue funcionando y
-   muestra directamente el texto oficial de CIMA; el
-   escáner y el ordenado de notas se desactivan.
+   La usan el chatbot, el escáner y las notas SOAP. Sin GEMINI_API_KEY el escáner y las notas se apagan
+   GEMINI_MODEL es opcional. Llave: https://aistudio.google.com/apikey
 ===================================================== */
 
 require_once __DIR__ . '/../config/apis.php';
@@ -30,12 +17,7 @@ if (!function_exists('geminiDisponible')) {
 }
 
 if (!function_exists('geminiLlamar')) {
-    /**
-     * Petición a Gemini con una o varias partes (texto o imagen).
-     *
-     * @param array $partes Ej. [['text' => '...']] o [['inlineData' => [...]], ['text' => '...']]
-     * @return string|null Texto generado o null si la IA no respondió.
-     */
+    // $partes son de texto o imagen (inlineData). Regresa null si no responde
     function geminiLlamar($instruccionSistema, array $partes, $maxTokens = 700, $comoJson = false, $modelo = null)
     {
         if (!geminiDisponible()) {
@@ -118,9 +100,6 @@ if (!function_exists('geminiLlamar')) {
 }
 
 if (!function_exists('geminiGenerar')) {
-    /**
-     * @return string|null Texto generado o null si la IA no respondió.
-     */
     function geminiGenerar($instruccionSistema, $mensaje, $maxTokens = 700, $comoJson = false, $modelo = null)
     {
         return geminiLlamar($instruccionSistema, [['text' => $mensaje]], $maxTokens, $comoJson, $modelo);
@@ -128,10 +107,7 @@ if (!function_exists('geminiGenerar')) {
 }
 
 if (!function_exists('geminiAnalizarImagen')) {
-    /**
-     * Manda una foto (base64) junto con una instrucción. Los modelos Flash
-     * de Gemini leen texto en imágenes (cajas, frascos, recetas).
-     */
+    // Foto en base64 + instrucción (los modelos Flash sí leen texto de cajas y recetas)
     function geminiAnalizarImagen($instruccionSistema, $mensaje, $tipoMime, $base64, $maxTokens = 500, $comoJson = true)
     {
         return geminiLlamar($instruccionSistema, [
@@ -142,9 +118,7 @@ if (!function_exists('geminiAnalizarImagen')) {
 }
 
 if (!function_exists('geminiJson')) {
-    /**
-     * Decodifica la respuesta JSON de Gemini (a veces viene entre ```json ... ```).
-     */
+    // A veces el JSON viene entre ```json ```
     function geminiJson($texto)
     {
         if (!$texto) {

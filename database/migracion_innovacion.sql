@@ -3,16 +3,14 @@
 -- Migración: alergias, asistente de medicamentos,
 -- notificaciones push y notas de consulta
 -- =====================================================
--- El sistema crea estas tablas solo la primera vez que
--- se usa (config/esquema.php). Este archivo queda como
--- respaldo por si se quieren crear a mano desde
--- phpMyAdmin o desde la pestaña Data de Railway.
+-- config/esquema.php ya las crea solo, esto es por si
+-- hay que hacerlo a mano (phpMyAdmin o Data en Railway).
 -- =====================================================
 
--- Alergias conocidas del paciente (texto separado por comas)
+-- Alergias del paciente separadas por comas
 ALTER TABLE usuarios ADD COLUMN alergias VARCHAR(255) NULL AFTER edad;
 
--- Historial de consultas al asistente de medicamentos
+-- Historial del asistente de medicamentos
 CREATE TABLE IF NOT EXISTS chatbot_consultas (
     id INT AUTO_INCREMENT PRIMARY KEY,
     medico_id INT NOT NULL,
@@ -58,7 +56,7 @@ CREATE TABLE IF NOT EXISTS push_recordatorios (
     PRIMARY KEY (expediente_id, fecha_cita)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Notas de consulta (dictadas por voz o escritas; formato SOAP)
+-- Notas de consulta en formato SOAP (voz o texto)
 CREATE TABLE IF NOT EXISTS notas_consulta (
     id INT AUTO_INCREMENT PRIMARY KEY,
     id_cliente CHAR(36) NOT NULL UNIQUE,

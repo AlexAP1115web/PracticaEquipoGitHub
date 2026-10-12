@@ -3,12 +3,8 @@
 /* =====================================================
    MEDICORE PROFESSIONAL SYSTEM
    INTEGRACIÓN: GOOGLE OAUTH 2.0 (login institucional)
-   -----------------------------------------------------
-   Implementado con cURL puro (sin SDK de Google/Composer).
-   Si GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET no están
-   configurados en .env, apiHabilitada() regresa false y
-   el botón de login con Google simplemente no se muestra
-   (ver login.php), sin afectar el login tradicional.
+   Con cURL, sin SDK. Usa GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET,
+   si no están el botón de Google no sale en login.php
 ===================================================== */
 
 require_once __DIR__ . '/../config/apis.php';

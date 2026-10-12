@@ -3,12 +3,7 @@
 /* =====================================================
    MEDICORE PROFESSIONAL SYSTEM
    CARGADOR DE VARIABLES DE ENTORNO (.env) Y CONFIG DE APIs
-   -----------------------------------------------------
-   No depende de Composer ni de ninguna librería externa.
-   Lee el archivo .env (si existe) y expone sus valores
-   mediante la función apiConfig(). Si una clave no está
-   configurada, se regresa una cadena vacía y el módulo
-   que la use debe desactivarse solo (ver integrations/).
+   Lee el .env sin Composer. Si falta una clave apiConfig() regresa vacío
 ===================================================== */
 
 if (!function_exists('cargarVariablesEntorno')) {
@@ -49,11 +44,7 @@ if (!function_exists('cargarVariablesEntorno')) {
                     $valor = str_replace($ref[0], $valorRef, $valor);
                 }
 
-                // Siempre se sobreescribe con el valor actual del .env (no solo
-                // la primera vez), porque Apache en Windows corre como un solo
-                // proceso multihilo y putenv() persiste entre peticiones. Sin
-                // esto, un valor vacío quedaba "pegado" y nunca se refrescaba
-                // aunque después se llenara la clave real en el .env.
+                // Se sobreescribe siempre: en XAMPP (Windows) putenv() se queda entre peticiones
                 if (!empty($clave)) {
                     putenv("$clave=$valor");
                     $_ENV[$clave] = $valor;
@@ -81,11 +72,7 @@ if (!function_exists('apiConfig')) {
 }
 
 if (!function_exists('apiHabilitada')) {
-    /**
-     * Indica si un módulo/API tiene TODAS sus claves requeridas
-     * configuradas. Se usa para ocultar botones/menús cuando la
-     * integración aún no está lista, sin romper el resto del sistema.
-     */
+    // true si todas las claves están configuradas (para ocultar botones de APIs sin configurar)
     function apiHabilitada(array $clavesRequeridas)
     {
         foreach ($clavesRequeridas as $clave) {

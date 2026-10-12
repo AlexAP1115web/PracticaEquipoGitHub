@@ -5,8 +5,7 @@ require_once __DIR__ . "/integrations/TwilioOTP.php";
 
 /* ======================================================
    VERIFICACIÓN DEL SEGUNDO FACTOR (OTP POR SMS)
-   Solo accesible si el usuario ya pasó correo+contraseña
-   y quedó en estado "pre-autenticado" (login.php).
+   solo si ya pasó correo y contraseña en login.php
 ====================================================== */
 
 if (empty($_SESSION['otp_medico_pendiente'])) {

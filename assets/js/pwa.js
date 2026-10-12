@@ -1,10 +1,6 @@
-// PWA de MediCore
-// 1) Registra el Service Worker. La ruta es relativa para que funcione igual
-//    en XAMPP (localhost/MediCore_medicoAdmin/) y en Railway (raíz del dominio).
-// 2) Pone el número de citas de hoy sobre el ícono de la app instalada
-//    (Badging API).
-// 3) Manda las notas de consulta que se guardaron sin conexión cuando
-//    vuelve el internet (respaldo para navegadores sin Background Sync).
+// PWA: registra sw.js, pone las citas de hoy en el ícono (Badging API) y manda
+// las notas pendientes al volver el internet si no hay Background Sync.
+// La ruta de sw.js va relativa para que jale igual en XAMPP (subcarpeta) y en Railway
 
 (function () {
   if ('serviceWorker' in navigator) {
@@ -18,7 +14,7 @@
         });
     });
 
-    // El service worker avisa cuando terminó de mandar notas pendientes
+    // sw.js avisa cuando termina de mandar las notas pendientes
     navigator.serviceWorker.addEventListener('message', function (evento) {
       if (evento.data && evento.data.tipo === 'notas-enviadas') {
         notasEnviadas(evento.data.enviadas);
@@ -26,7 +22,7 @@
     });
   }
 
-  // Solo en las páginas del panel (con sesión) existe este elemento
+  // #datos-pwa solo está en las páginas con sesión (lo pone sidebar.php)
   function datosPanel() {
     return document.getElementById('datos-pwa');
   }
@@ -39,7 +35,7 @@
     const datos = datosPanel();
 
     if (!datos) {
-      // Pantallas sin sesión (login, portal): se quita el número
+      // En login/portal se quita el número
       if (/login\.php|home\.php|logout\.php/.test(location.pathname)) {
         navigator.clearAppBadge().catch(function () {});
       }
@@ -89,7 +85,7 @@
     }).then(function (resultado) {
       if (resultado.enviadas > 0) notasEnviadas(resultado.enviadas);
     }).catch(function () {
-      // IndexedDB no disponible: no hay nada que mandar
+      // Sin IndexedDB no hay nada que mandar
     }).then(function () {
       enviando = false;
     });

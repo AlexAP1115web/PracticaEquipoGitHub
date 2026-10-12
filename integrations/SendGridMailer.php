@@ -3,11 +3,7 @@
 /* =====================================================
    MEDICORE PROFESSIONAL SYSTEM
    INTEGRACIÓN: SENDGRID (correos transaccionales)
-   -----------------------------------------------------
-   Implementado con cURL puro (sin SDK/Composer) para que
-   funcione de inmediato. Si SENDGRID_API_KEY no está
-   configurada en .env, la función regresa false sin
-   generar errores ni romper la página que la llama.
+   Con cURL, sin SDK. Sin SENDGRID_API_KEY solo regresa false y lo deja en el log
 ===================================================== */
 
 require_once __DIR__ . '/../config/apis.php';
@@ -20,15 +16,7 @@ if (!function_exists('sendGridDisponible')) {
 }
 
 if (!function_exists('enviarCorreoSendGrid')) {
-    /**
-     * Envía un correo transaccional usando la API v3 de SendGrid.
-     *
-     * @param string $destinatarioEmail
-     * @param string $destinatarioNombre
-     * @param string $asunto
-     * @param string $contenidoHtml
-     * @return bool true si SendGrid aceptó el envío (HTTP 2xx)
-     */
+    // API v3, true si SendGrid responde 2xx
     function enviarCorreoSendGrid($destinatarioEmail, $destinatarioNombre, $asunto, $contenidoHtml)
     {
         if (!sendGridDisponible()) {

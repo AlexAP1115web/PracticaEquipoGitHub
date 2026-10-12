@@ -1,6 +1,5 @@
 <?php
-/* Etiquetas de la PWA: manifest, color del tema, icono para iOS
-   y registro del service worker. Se incluye al final del head de cada pagina. */
+/* Manifest, iconos y scripts de la PWA. Va al final del head de cada pagina */
 ?>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0E3B2C">

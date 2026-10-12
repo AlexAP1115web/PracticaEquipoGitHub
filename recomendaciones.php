@@ -6,8 +6,7 @@ require_once __DIR__ . "/integrations/OpenWeather.php";
 verificarSesion();
 
 /* ======================================================
-   LISTA DE PACIENTES (para elegir a quién generar
-   recomendaciones)
+   LISTA DE PACIENTES (para el select)
 ====================================================== */
 
 $stmt = $conexion->prepare("

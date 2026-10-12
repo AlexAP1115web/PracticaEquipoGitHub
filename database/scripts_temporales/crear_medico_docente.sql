@@ -1,11 +1,8 @@
 -- =====================================================
 -- MEDICORE PROFESSIONAL SYSTEM
--- Cuenta de acceso para la docente (evaluación)
--- Docente: M.T.I. Haydeé Gómez Díaz
--- Correo:  haydee.gomez@utpuebla.edu.mx
--- Password: MediCore2026!  (bcrypt, 12 rounds)
--- Sin teléfono registrado -> el login NO pedirá OTP,
--- entra directo con correo + contraseña.
+-- Cuenta de la maestra para revisar el sistema
+-- Password: MediCore2026! (bcrypt)
+-- Sin teléfono, así que no le pide OTP
 -- =====================================================
 
 INSERT INTO medicos (nombre, correo, password)

@@ -3,16 +3,8 @@
 /* =====================================================
    MEDICORE PROFESSIONAL SYSTEM
    ACTUALIZACIÓN AUTOMÁTICA DEL ESQUEMA
-   -----------------------------------------------------
-   Crea las tablas y columnas que necesitan los módulos
-   nuevos (alergias, asistente de medicamentos,
-   notificaciones push y notas de consulta). Se ejecuta solo una vez por
-   servidor: al terminar deja una marca en logs/ y las
-   siguientes peticiones ya no consultan nada.
-
-   Así no hace falta correr scripts a mano ni en XAMPP
-   ni en la base de datos de Railway. El mismo SQL está
-   en database/migracion_innovacion.sql como respaldo.
+   Tablas de alergias, chatbot, push y notas. Corre una vez y deja una marca
+   (el mismo SQL está en database/migracion_innovacion.sql)
 ===================================================== */
 
 if (!function_exists('prepararEsquemaInnovacion')) {
@@ -24,10 +16,8 @@ if (!function_exists('prepararEsquemaInnovacion')) {
             return;
         }
 
-        // La marca se guarda en logs/ o, si no se puede escribir ahí
-        // (contenedor de Railway), en sessions_data/.
-        // v2: se agregó la tabla notas_consulta. Todo es idempotente
-        // (IF NOT EXISTS), así que correrlo de nuevo no daña nada.
+        // Marca en logs/, o en sessions_data/ si en Railway no deja escribir
+        // v2 = ya incluye notas_consulta
         $marcas = [
             __DIR__ . '/../logs/.esquema_innovacion_v2',
             __DIR__ . '/../sessions_data/.esquema_innovacion_v2'
@@ -102,9 +92,7 @@ if (!function_exists('prepararEsquemaInnovacion')) {
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             ");
 
-            // Notas de consulta (dictadas o escritas, ordenadas en SOAP).
-            // id_cliente lo genera el navegador: si una nota guardada sin
-            // conexión se reenvía dos veces, no se duplica.
+            // Notas SOAP. id_cliente viene del navegador para no duplicar notas offline
             $conexion->query("
                 CREATE TABLE IF NOT EXISTS notas_consulta (
                     id INT AUTO_INCREMENT PRIMARY KEY,

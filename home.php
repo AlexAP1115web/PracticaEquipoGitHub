@@ -297,7 +297,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['accion']) && $_POST['a
             color: var(--verde-claro);
         }
 
-        /* Electrocardiograma: el único movimiento automático de la página */
+        /* Línea de electrocardiograma del hero */
         .ecg {
             position: absolute;
             left: 0;
@@ -578,7 +578,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['accion']) && $_POST['a
             font-size: 18px;
         }
 
-        /* Funciones: encabezado fijo a la izquierda y lista a la derecha */
+        /* Funciones (título fijo a la izquierda) */
         .funciones {
             display: grid;
             grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
@@ -718,8 +718,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['accion']) && $_POST['a
             display: none;
         }
 
-        /* Con JavaScript en pantallas anchas: la maqueta se queda fija
-           y cambia según el paso que se está leyendo */
+        /* Pantallas anchas con JS: la maqueta se queda fija y cambia con cada paso */
         @media (min-width: 961px) {
             .con-escenario .paso {
                 min-height: 52vh;
@@ -1717,7 +1716,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['accion']) && $_POST['a
                 }
             });
 
-            // Consulta paso a paso: la maqueta de la derecha cambia según el paso
+            // Cambia la maqueta de la derecha según el paso visible
             const escenario = document.getElementById("escenario");
             const pasos = Array.prototype.slice.call(document.querySelectorAll(".paso"));
 

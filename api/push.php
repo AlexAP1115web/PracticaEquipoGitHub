@@ -1,23 +1,9 @@
 <?php
 
 /* =====================================================
-   MEDICORE PROFESSIONAL SYSTEM
-   API: NOTIFICACIONES PUSH
-   -----------------------------------------------------
-   api/push.php?accion=...
-
-   Con sesión de médico + cabecera X-CSRF-Token (POST JSON):
-     suscribir      guarda la suscripción del navegador
-     cancelar       borra la suscripción del navegador
-     prueba         manda una notificación de prueba
-     recordatorios  manda ahora los recordatorios de citas
-
-   Sin sesión:
-     pendientes     (POST {endpoint}) lo llama el service
-                    worker para leer sus mensajes
-     cron           (GET ?token=...) para un servicio de cron
-                    externo; solo funciona si PUSH_CRON_TOKEN
-                    está configurado
+   API: NOTIFICACIONES PUSH (api/push.php?accion=...)
+   Con sesión + X-CSRF-Token: suscribir, cancelar, prueba, recordatorios
+   Sin sesión: pendientes (la llama sw.js) y cron (GET ?token=..., necesita PUSH_CRON_TOKEN)
 ===================================================== */
 
 require_once __DIR__ . '/../config.php';

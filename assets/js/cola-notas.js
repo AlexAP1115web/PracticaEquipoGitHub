@@ -1,15 +1,7 @@
-// Cola de notas sin conexión - MediCore
-//
-// Cuando el médico guarda una nota de consulta y no hay internet, la nota
-// se guarda en IndexedDB (en este dispositivo) y se envía sola cuando
-// vuelve la conexión:
-//   - con Background Sync, el service worker la manda aunque la página
-//     ya esté cerrada (Chrome, Edge y Android);
-//   - en navegadores sin Background Sync, la página la manda en cuanto
-//     detecta que volvió el internet.
-// En cuanto el servidor confirma que la guardó, se borra del dispositivo.
-//
-// Este archivo lo usan las páginas y también sw.js (importScripts).
+// Cola de notas sin conexión (IndexedDB)
+// Si no hay internet la nota se guarda aquí y se manda después: con Background Sync
+// desde sw.js o, si el navegador no lo tiene, desde pwa.js cuando vuelve la red.
+// Lo cargan las páginas y sw.js con importScripts
 
 (function (global) {
   'use strict';
@@ -34,7 +26,7 @@
     });
   }
 
-  // Ejecuta una operación sobre el almacén y espera a que termine la transacción
+  // Resuelve hasta el oncomplete de la transacción, no solo de la petición
   function operar(modo, accion) {
     return abrir().then(function (bd) {
       return new Promise(function (resolver, rechazar) {
@@ -66,13 +58,7 @@
     return operar('readwrite', function (almacen) { return almacen.delete(idCliente); });
   }
 
-  /**
-   * Manda al servidor todas las notas pendientes.
-   * opciones.base: URL de la carpeta de la app (donde está api/).
-   * opciones.csrf: token actual de la página (si no, se usa el que se
-   *                guardó con la nota; sirve para el service worker).
-   * Regresa { enviadas, pendientes, sinRed }.
-   */
+  // opciones: { base, csrf }. Sin csrf usa el que se guardó con la nota (así lo llama el sw)
   function enviarPendientes(opciones) {
     opciones = opciones || {};
     const url = new URL('api/notas.php?accion=guardar', opciones.base || global.location.href).href;
@@ -105,8 +91,7 @@
               return borrar(nota.id_cliente);
             }
 
-            // 401/403: sesión vencida o token viejo. Se queda guardada y se
-            // vuelve a intentar cuando el médico abra MediCore otra vez.
+            // 401/403 (sesión vencida o token viejo): se queda para el siguiente intento
             resultado.pendientes++;
             nota.error = respuesta.status;
             return guardar(nota);

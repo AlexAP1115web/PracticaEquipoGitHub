@@ -1,9 +1,6 @@
-// Nota de consulta - MediCore
-// 1) Dictado: la Web Speech API del navegador convierte la voz en texto.
-// 2) "Ordenar con IA": api/notas.php acomoda el texto en formato SOAP
-//    (Gemini) y revisa el plan contra las alergias del paciente.
-// 3) "Guardar nota": se guarda en el expediente. Si no hay internet,
-//    se queda en este dispositivo (cola-notas.js) y se envía sola después.
+// Nota de consulta del expediente
+// Dictado con la Web Speech API, "Ordenar con IA" (api/notas.php, SOAP con Gemini) y guardar.
+// Sin internet la nota se queda en cola-notas.js y se manda después
 
 (function () {
   const tarjeta = document.getElementById('notaConsulta');
@@ -124,8 +121,8 @@
       if (evento.error === 'no-speech' || evento.error === 'aborted') return;
 
       const motivos = {
-        'not-allowed': 'No hay permiso para usar el micrófono. Actívalo desde el candado de la barra de direcciones.',
-        'service-not-allowed': 'No hay permiso para usar el micrófono. Actívalo desde el candado de la barra de direcciones.',
+        'not-allowed': 'El navegador bloqueó el micrófono. Toca el ícono que está junto a la dirección de la página, entra a Permisos y permite el micrófono.',
+        'service-not-allowed': 'El dictado por voz está apagado en este dispositivo. En iPhone actívalo en Ajustes > General > Teclado > Dictado.',
         'audio-capture': 'No se encontró un micrófono conectado.',
         'network': 'El dictado necesita internet. Puedes escribir la nota y guardarla.'
       };
@@ -134,12 +131,10 @@
       ponerEstado(motivos[evento.error] || 'El dictado se detuvo. Intenta de nuevo.', false);
     };
 
-    // Chrome corta el dictado tras unos segundos de silencio: si el médico
-    // no lo detuvo, se vuelve a encender.
+    // Chrome corta el dictado con unos segundos de silencio, si el médico no lo paró se vuelve a prender
     reconocedor.onend = function () {
       if (escuchando) {
-        // Si se corta una y otra vez en menos de un segundo, algo falla
-        // (micrófono ocupado, sin servicio): se detiene en lugar de ciclarse.
+        // Si se corta 3 veces seguidas en menos de 1 s algo anda mal (micrófono ocupado), mejor se detiene
         reiniciosRapidos = Date.now() - ultimoInicio < 1000 ? reiniciosRapidos + 1 : 0;
 
         if (reiniciosRapidos >= 3) {
@@ -338,7 +333,7 @@
     nota.csrf = csrf;
     await window.MediCoreCola.guardar(nota);
 
-    // Background Sync: el service worker la manda cuando vuelva el internet
+    // Con Background Sync la manda sw.js cuando regrese el internet
     try {
       const registro = await Promise.race([
         navigator.serviceWorker.ready,
@@ -348,7 +343,7 @@
         await registro.sync.register('enviar-notas');
       }
     } catch (e) {
-      // Sin Background Sync: pwa.js la manda al volver la conexión
+      // Si no hay Background Sync la manda pwa.js al volver la red
     }
 
     ponerEnLista(nota, true);
@@ -424,7 +419,7 @@
         .sort(function (a, b) { return String(a.escrita_en).localeCompare(String(b.escrita_en)); })
         .forEach(function (n) { ponerEnLista(n, true); });
 
-      // Las que ya se enviaron cambian su etiqueta
+      // Las que ya se mandaron pasan a "Enviada"
       lista.querySelectorAll('.nota-origen.pendiente').forEach(function (etiqueta) {
         const li = etiqueta.closest('li');
         if (li && ids.indexOf(li.getAttribute('data-id')) === -1) {
@@ -433,7 +428,7 @@
         }
       });
     } catch (e) {
-      // IndexedDB no disponible (modo privado): no pasa nada
+      // Sin IndexedDB (modo incógnito) no hay nada que mostrar
     }
   }
 

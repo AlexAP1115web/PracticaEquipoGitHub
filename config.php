@@ -43,26 +43,13 @@ if (!function_exists('registrarLog')) {
    SESIÓN
 ===================================================== */
 
-// Tiempo máximo de inactividad (en segundos) antes de cerrar la sesión.
-// Se define aquí una sola vez para que config.php y security.php usen
-// exactamente el mismo valor; antes cada archivo manejaba el suyo (7200
-// contra 14400) y el resultado dependía de cuál función terminaba
-// ejecutándose primero.
+// Inactividad máxima en segundos (2 horas)
 if (!defined('SESSION_TIMEOUT')) {
     define('SESSION_TIMEOUT', 7200);
 }
 
-// Ruta explícita para guardar los archivos de sesión, dentro del propio
-// proyecto. Motivo: en algunos entornos de contenedor (Railway/Docker con
-// la imagen shinsenter/php) la ruta por defecto de sesiones de PHP (/tmp)
-// puede no ser escribible o quedar fuera de open_basedir, lo que hace que
-// session_start() nunca falle de forma visible pero tampoco persista nada:
-// cada petición arranca con una sesión vacía, "csrf_token" nunca coincide,
-// y CUALQUIER formulario (login incluido) se rechaza siempre por CSRF. Al
-// forzar una carpeta propia (que sabemos que sí es escribible, igual que
-// logs/ y uploads/) se evita depender de la configuración de sesiones del
-// servidor. En XAMPP local no cambia nada: simplemente crea esta carpeta
-// dentro del proyecto y sigue funcionando igual que antes.
+// Sesiones en una carpeta del proyecto: en Railway /tmp no siempre se puede escribir,
+// la sesión no se guardaba y todos los formularios fallaban por CSRF
 $rutaSesiones = __DIR__ . '/sessions_data';
 
 if (!file_exists($rutaSesiones)) {
@@ -92,12 +79,7 @@ if (session_status() === PHP_SESSION_NONE) {
         'domain' => '',
         'secure' => $secure,
         'httponly' => true,
-        // "Lax" (no "Strict"): necesario para que la cookie de sesión
-        // sobreviva la redirección de vuelta desde Google OAuth2. Con
-        // "Strict" el navegador bloquea la cookie en esa navegación
-        // entre sitios, se pierde "oauth_state" y el sistema lo
-        // detecta (incorrectamente) como CSRF. "Lax" sigue protegiendo
-        // contra CSRF en formularios/peticiones normales.
+        // Lax y no Strict, con Strict se pierde oauth_state al regresar de Google
         'samesite' => 'Lax'
     ]);
 
@@ -112,17 +94,15 @@ if (!headers_sent()) {
     header('X-Frame-Options: SAMEORIGIN');
     header('X-Content-Type-Options: nosniff');
     header('Referrer-Policy: strict-origin');
-    header("Permissions-Policy: geolocation=(), microphone=(), camera=()");
+    // Micrófono y cámara solo para MediCore (dictado de notas y escáner), nunca para iframes
+    header("Permissions-Policy: geolocation=(self), microphone=(self), camera=(self)");
 }
 
 /* =====================================================
    CONEXIÓN MYSQL
 ===================================================== */
 
-// Usa variables de entorno si existen (necesario para despliegue en la nube:
-// Railway, Render, etc. inyectan sus propias credenciales de MySQL). Si no
-// existen (entorno local con XAMPP), cae en los valores de siempre, por lo
-// que el entorno local sigue funcionando exactamente igual que antes.
+// En Railway salen de las variables de entorno, en XAMPP usa los valores locales
 $host = apiConfig('DB_HOST', 'localhost');
 $user = apiConfig('DB_USER', 'root');
 $pass = apiConfig('DB_PASS', '');
@@ -291,19 +271,7 @@ if (!function_exists('contarPorEstado')) {
 
 /* =====================================================
    CSRF
-   -----------------------------------------------------
-   El token se rota al iniciar sesión (para cortar la
-   fijación de sesión), pero al rotarlo se guarda el
-   anterior durante unos minutos. Motivo: cuando el token
-   cambia, cualquier formulario que el navegador ya tenía
-   pintado (otra pestaña abierta, el botón "atrás", una
-   página recuperada del caché) se queda con el token
-   viejo y el sistema lo rechazaba como si fuera un
-   ataque. Esos eran los "Intento CSRF detectado" del log
-   de seguridad. Aceptar el token anterior durante una
-   ventana corta resuelve el falso positivo sin abrir la
-   puerta a un CSRF real: un atacante externo sigue sin
-   poder leer ninguno de los dos tokens.
+   Al rotar el token el anterior sigue valiendo unos minutos (otras pestañas, botón atrás)
 ===================================================== */
 
 if (!defined('CSRF_GRACIA')) {
@@ -371,8 +339,7 @@ if (!function_exists('validarTokenCSRF')) {
 
         $pagina = basename($_SERVER['SCRIPT_NAME'] ?? 'desconocida');
 
-        // Se registra como WARNING, no como CRITICAL: la causa habitual es
-        // un formulario vencido, no un ataque.
+        // WARNING y no CRITICAL, casi siempre es un formulario vencido
         registrarLog("Token CSRF vencido o inválido en $pagina.", "WARNING");
 
         http_response_code(403);
@@ -409,10 +376,7 @@ if (!function_exists('redirigir')) {
 
 /* =====================================================
    FECHA DE ALTA DE USUARIOS
-   Según la versión de la base, la tabla usuarios guarda la
-   fecha de alta como "creado_en" o "fecha_registro" (o no la
-   tiene). Se revisa cuál existe para que pacientes.php y
-   reportes.php no truenen si falta alguna.
+   Puede ser creado_en o fecha_registro según la versión de la base
 ===================================================== */
 
 if (!function_exists('columnaFechaAlta')) {

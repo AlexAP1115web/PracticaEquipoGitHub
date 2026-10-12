@@ -1,6 +1,5 @@
-// Notificaciones push - MediCore
-// Activa/desactiva las notificaciones de este dispositivo y permite
-// mandar una prueba o los recordatorios de citas.
+// Notificaciones push (panel de configuracion.php)
+// Activar/desactivar en este dispositivo, mandar prueba y recordatorios de citas
 
 (function () {
   const caja = document.getElementById('push-panel');
@@ -44,7 +43,7 @@
     const suscripcion = await registro.pushManager.getSubscription();
     const activa = !!suscripcion && Notification.permission === 'granted';
 
-    // Se usa display porque la clase de los botones ya define su propio display
+    // Con hidden no se ocultan porque la clase del botón ya trae display
     btnActivar.style.display = activa ? 'none' : '';
     btnDesactivar.style.display = activa ? '' : 'none';
     btnPrueba.disabled = !activa;

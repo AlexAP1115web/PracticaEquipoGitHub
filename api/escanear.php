@@ -1,20 +1,9 @@
 <?php
 
 /* =====================================================
-   MEDICORE PROFESSIONAL SYSTEM
-   API: ESCÁNER DE MEDICAMENTOS
-   -----------------------------------------------------
-   POST api/escanear.php
-   Cabecera X-CSRF-Token + cuerpo JSON:
-     { "imagen": "<base64 sin encabezado>", "tipo": "image/jpeg", "paciente_id": 15 }
-
-   Seguridad:
-   - Solo médicos con sesión iniciada.
-   - Token CSRF en la cabecera.
-   - Máximo 6 fotos cada 5 minutos por sesión.
-   - Solo JPEG, PNG o WebP de hasta 4 MB; se valida que
-     realmente sea una imagen.
-   - La foto no se guarda: solo se manda a Gemini.
+   API: ESCÁNER DE MEDICAMENTOS (foto a Gemini)
+   POST con X-CSRF-Token y JSON { "imagen": "<base64 sin encabezado>", "tipo": "image/jpeg", "paciente_id": 15 }
+   JPEG/PNG/WebP de hasta 4 MB, máx. 6 fotos cada 5 min. La foto no se guarda en el servidor.
 ===================================================== */
 
 require_once __DIR__ . '/../config.php';
@@ -51,7 +40,7 @@ if (!geminiDisponible()) {
     responderEscaneo(503, ['ok' => false, 'mensaje' => 'Para leer fotos hace falta configurar GEMINI_API_KEY en el servidor.']);
 }
 
-// Límite de uso por sesión
+// Máx. 6 fotos cada 5 min por sesión
 $ahora = time();
 $_SESSION['escaner_uso'] = array_values(array_filter(
     $_SESSION['escaner_uso'] ?? [],

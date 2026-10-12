@@ -3,27 +3,9 @@
 /* =====================================================
    MEDICORE PROFESSIONAL SYSTEM
    NOTIFICACIONES PUSH (Web Push + VAPID)
-   -----------------------------------------------------
-   Permite que el médico reciba avisos en su PC o celular
-   aunque MediCore esté cerrado (función propia de una PWA).
-
-   Cómo funciona, sin librerías externas:
-   1. El navegador se suscribe con la llave pública VAPID y
-      manda su "endpoint" (dirección del servicio push de
-      Google, Mozilla, Apple o Microsoft) a api/push.php.
-   2. Para avisar, el servidor guarda el mensaje en la tabla
-      push_mensajes y manda al endpoint un push SIN contenido,
-      firmado con la llave privada VAPID (JWT ES256).
-   3. El service worker se despierta, pide a api/push.php los
-      mensajes pendientes de su suscripción y los muestra.
-
-   Mandar el push vacío evita tener que cifrar el contenido
-   (RFC 8291), que en PHP requiere librerías extra; el texto
-   viaja por HTTPS desde nuestro propio servidor.
-
-   Variables: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY (formato
-   base64url, el mismo que genera "npx web-push
-   generate-vapid-keys") y VAPID_SUBJECT (mailto:...).
+   Se manda un push vacío firmado con VAPID y el service worker pide el mensaje
+   a api/push.php, así no hay que cifrar el contenido (en PHP pide librerías).
+   Variables: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY (base64url, de npx web-push generate-vapid-keys) y VAPID_SUBJECT
 ===================================================== */
 
 require_once __DIR__ . '/../config/apis.php';
@@ -51,10 +33,7 @@ if (!function_exists('base64urlDecodificar')) {
 }
 
 if (!function_exists('vapidLlavePrivadaPem')) {
-    /**
-     * Arma la llave privada EC P-256 en formato PEM (SEC1) a partir de
-     * los valores en base64url que se guardan en las variables de entorno.
-     */
+    // Llave EC P-256 en PEM armada con las llaves base64url del .env
     function vapidLlavePrivadaPem()
     {
         $privada = base64urlDecodificar(apiConfig('VAPID_PRIVATE_KEY'));
@@ -77,10 +56,7 @@ if (!function_exists('vapidLlavePrivadaPem')) {
 }
 
 if (!function_exists('firmaDerARaw')) {
-    /**
-     * openssl entrega la firma ECDSA en DER; los JWT ES256 la usan
-     * como r||s de 32 bytes cada uno.
-     */
+    // openssl da la firma en DER y el JWT ES256 la necesita como r||s (32 bytes cada uno)
     function firmaDerARaw($der)
     {
         $pos = 2;
@@ -138,10 +114,7 @@ if (!function_exists('vapidCabeceraAutorizacion')) {
 }
 
 if (!function_exists('enviarPushVacio')) {
-    /**
-     * @return int Código HTTP del servicio push (201 = entregado,
-     *             404/410 = la suscripción ya no existe).
-     */
+    // Regresa el código HTTP: 201 entregado, 404/410 la suscripción ya no existe
     function enviarPushVacio($endpoint)
     {
         $autorizacion = vapidCabeceraAutorizacion($endpoint);
@@ -178,13 +151,7 @@ if (!function_exists('enviarPushVacio')) {
 }
 
 if (!function_exists('notificarSuscripciones')) {
-    /**
-     * Guarda el mensaje para cada suscripción indicada y despierta al
-     * service worker de cada dispositivo.
-     *
-     * @param array $suscripciones Filas de push_suscripciones (id, endpoint).
-     * @return array ['enviados' => n, 'eliminados' => n]
-     */
+    // Guarda el mensaje de cada suscripción y despierta a su service worker
     function notificarSuscripciones($conexion, array $suscripciones, $titulo, $cuerpo, $url = 'index.php')
     {
         $enviados = 0;
@@ -234,11 +201,8 @@ if (!function_exists('notificarMedico')) {
 }
 
 if (!function_exists('enviarRecordatoriosDeCitas')) {
-    /**
-     * Avisa de las citas de hoy y de mañana que todavía no tienen
-     * recordatorio. Como todos los médicos de la clínica ven a todos
-     * los pacientes, el aviso llega a todos los dispositivos suscritos.
-     */
+    // Citas de hoy y mañana sin recordatorio. Va a todos los dispositivos
+    // porque todos los médicos ven a todos los pacientes
     function enviarRecordatoriosDeCitas($conexion)
     {
         $citas = $conexion->query("

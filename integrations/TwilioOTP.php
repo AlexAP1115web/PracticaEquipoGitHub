@@ -3,12 +3,8 @@
 /* =====================================================
    MEDICORE PROFESSIONAL SYSTEM
    INTEGRACIÓN: TWILIO (código OTP como segundo factor)
-   -----------------------------------------------------
-   Implementado con cURL puro (sin SDK de Twilio/Composer).
-   Se activa solo si OTP_ENABLED=true en .env Y el médico
-   tiene un teléfono registrado. Si falta cualquiera de las
-   dos condiciones, el login sigue funcionando exactamente
-   igual que antes (un solo factor: correo + contraseña).
+   Solo se usa con OTP_ENABLED=true y si el médico tiene teléfono,
+   si no el login queda normal con correo y contraseña
 ===================================================== */
 
 require_once __DIR__ . '/../config/apis.php';
@@ -29,11 +25,7 @@ if (!function_exists('generarCodigoOTP')) {
 }
 
 if (!function_exists('enviarOTPTwilio')) {
-    /**
-     * Envía un SMS con el código OTP mediante la API REST de Twilio.
-     *
-     * @return bool true si Twilio aceptó el mensaje (HTTP 2xx)
-     */
+    // true si Twilio responde 2xx
     function enviarOTPTwilio($telefonoDestino, $codigo)
     {
         $sid = apiConfig('TWILIO_ACCOUNT_SID');

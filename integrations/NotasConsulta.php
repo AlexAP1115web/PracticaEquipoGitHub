@@ -3,17 +3,8 @@
 /* =====================================================
    MEDICORE PROFESSIONAL SYSTEM
    NOTAS DE CONSULTA (dictado por voz + formato SOAP)
-   -----------------------------------------------------
-   El médico dicta lo que pasó en la consulta (el
-   navegador convierte la voz en texto con la Web Speech
-   API) o lo escribe. Gemini acomoda ese texto en el
-   formato clínico SOAP:
-     S - Subjetivo: lo que cuenta el paciente.
-     O - Objetivo: exploración, signos vitales, estudios.
-     A - Análisis: diagnóstico o impresión diagnóstica.
-     P - Plan: tratamiento, medicamentos e indicaciones.
-   Después se revisa el plan contra las alergias del
-   paciente. El médico corrige lo que haga falta y guarda.
+   Gemini acomoda en SOAP lo dictado (Web Speech API) o escrito,
+   y el plan se revisa contra las alergias del paciente
 ===================================================== */
 
 require_once __DIR__ . '/GeminiAI.php';
@@ -27,9 +18,7 @@ if (!function_exists('camposNotaSOAP')) {
 }
 
 if (!function_exists('estructurarNotaSOAP')) {
-    /**
-     * @return array|null ['subjetivo','objetivo','analisis','plan','medicamentos'] o null si Gemini no respondió.
-     */
+    // null si Gemini no respondió
     function estructurarNotaSOAP($texto, $nombrePaciente = '')
     {
         $json = geminiGenerar(
@@ -72,9 +61,7 @@ if (!function_exists('estructurarNotaSOAP')) {
 }
 
 if (!function_exists('alertasDeNota')) {
-    /**
-     * Revisa el plan (y los medicamentos detectados) contra las alergias.
-     */
+    // Plan y medicamentos detectados contra las alergias
     function alertasDeNota(array $nota, $alergias)
     {
         if (trim((string) $alergias) === '') {
@@ -101,12 +88,7 @@ if (!function_exists('pacienteDeNota')) {
 }
 
 if (!function_exists('guardarNotaConsulta')) {
-    /**
-     * Guarda la nota. Si llega sin ordenar (por ejemplo, porque se
-     * escribió sin internet) y Gemini está disponible, se ordena aquí.
-     *
-     * @return array ['ok' => bool, 'mensaje' => string, 'nota' => array|null, 'alertas' => array]
-     */
+    // Si la nota llega sin ordenar (se hizo sin internet) y hay Gemini, se ordena aquí
     function guardarNotaConsulta($conexion, $medicoId, array $entrada)
     {
         $idCliente = strtolower(trim((string) ($entrada['id_cliente'] ?? '')));
@@ -146,8 +128,7 @@ if (!function_exists('guardarNotaConsulta')) {
 
         $origen = in_array($entrada['origen'] ?? '', ['voz', 'texto', 'sin_conexion'], true) ? $entrada['origen'] : 'texto';
 
-        // Hora en que se escribió (las notas sin conexión llegan después).
-        // Se acepta solo si es de los últimos 7 días y no está en el futuro.
+        // Las notas sin conexión llegan después, se respeta su hora si es de los últimos 7 días
         $creadoEn = date('Y-m-d H:i:s');
         $escrita = isset($entrada['escrita_en']) ? strtotime((string) $entrada['escrita_en']) : false;
 

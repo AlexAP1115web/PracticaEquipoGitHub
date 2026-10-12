@@ -3,13 +3,8 @@
 /* =====================================================
    MEDICORE PROFESSIONAL SYSTEM
    INTEGRACIÓN: GOOGLE CALENDAR API (sincronizar citas)
-   -----------------------------------------------------
-   Requiere que el médico haya iniciado sesión con Google
-   (oauth_google.php) habiendo autorizado el scope de
-   Calendar, y que GOOGLE_CALENDAR_ENABLED=true en .env.
-   Si cualquiera de estas condiciones falta, la función
-   regresa false de forma silenciosa (no bloquea el guardado
-   del expediente/cita).
+   Necesita login con Google (scope de Calendar) y GOOGLE_CALENDAR_ENABLED=true.
+   Si falta algo regresa false y la cita se guarda igual
 ===================================================== */
 
 require_once __DIR__ . '/../config/apis.php';
@@ -49,10 +44,7 @@ if (!function_exists('refrescarAccessTokenGoogle')) {
 }
 
 if (!function_exists('sincronizarCitaConGoogleCalendar')) {
-    /**
-     * Crea un evento en el Google Calendar del médico autenticado
-     * en sesión, a partir de los datos de una cita del expediente.
-     */
+    // Crea el evento en el calendario del médico que está en sesión
     function sincronizarCitaConGoogleCalendar($nombrePaciente, $fecha, $hora, $descripcion = '')
     {
         global $conexion;
@@ -89,7 +81,7 @@ if (!function_exists('sincronizarCitaConGoogleCalendar')) {
 
         $horaInicio = !empty($hora) ? $hora : '09:00:00';
         $timestampInicio = strtotime("$fecha $horaInicio");
-        $timestampFin = $timestampInicio + (30 * 60); // duración de 30 minutos
+        $timestampFin = $timestampInicio + (30 * 60); // 30 min
 
         $evento = [
             'summary'     => 'Cita médica MediCore - ' . $nombrePaciente,

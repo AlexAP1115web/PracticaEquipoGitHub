@@ -5,7 +5,6 @@ require_once __DIR__ . "/integrations/SendGridMailer.php";
 
 /* ======================================================
    PÁGINA PÚBLICA: SOLICITAR RECUPERACIÓN DE CONTRASEÑA
-   No requiere sesión iniciada (es para quien no puede entrar).
 ====================================================== */
 
 $mensaje = "";
@@ -29,8 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $medico = $stmt->get_result()->fetch_assoc();
         $stmt->close();
 
-        // Mensaje genérico siempre igual, exista o no el correo,
-        // para no revelar qué cuentas existen en el sistema (OWASP).
+        // Mismo mensaje exista o no el correo, para no revelar qué cuentas hay
         $mensaje = "Si el correo está registrado en MediCore, recibirás un enlace de recuperación en unos minutos.";
         $tipoMensaje = "info";
 

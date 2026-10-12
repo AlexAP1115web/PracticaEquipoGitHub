@@ -2,21 +2,9 @@
 
 /* =====================================================
    MEDICORE PROFESSIONAL SYSTEM
-   INTEGRACIÓN: CIMA - AEMPS (información oficial de
-   medicamentos)
-   -----------------------------------------------------
-   CIMA es el Centro de Información de Medicamentos de la
-   Agencia Española de Medicamentos y Productos Sanitarios.
-   Su API REST es pública, gratuita, no pide llave y
-   devuelve en español la ficha técnica de cada
-   medicamento dividida por secciones:
-
-     4.1 Indicaciones        4.5 Interacciones
-     4.2 Posología           4.6 Embarazo y lactancia
-     4.3 Contraindicaciones  4.8 Reacciones adversas
-     4.4 Advertencias
-
-   Documentación: https://cima.aemps.es/cima/rest/
+   INTEGRACIÓN: CIMA - AEMPS (información oficial de medicamentos)
+   API pública sin llave, regresa la ficha técnica por secciones (4.1 a 4.8)
+   Docs: https://cima.aemps.es/cima/rest/
 ===================================================== */
 
 require_once __DIR__ . '/../config/apis.php';
@@ -57,11 +45,7 @@ if (!function_exists('cimaPeticion')) {
 }
 
 if (!function_exists('cimaBuscarMedicamento')) {
-    /**
-     * Busca un medicamento por nombre o principio activo y elige el
-     * resultado más útil: comercializado, de un solo principio activo
-     * que coincida con lo buscado y con ficha técnica por secciones.
-     */
+    // Se queda con el que tenga ficha por secciones y mejor puntaje (principio igual, comercializado, uno solo)
     function cimaBuscarMedicamento($termino)
     {
         $termino = trim((string) $termino);
@@ -146,9 +130,7 @@ if (!function_exists('cimaHtmlATexto')) {
 }
 
 if (!function_exists('cimaSeccionFichaTecnica')) {
-    /**
-     * Devuelve el texto de una sección de la ficha técnica (tipo 1).
-     */
+    // doc tipo 1 = ficha técnica
     function cimaSeccionFichaTecnica($nregistro, $seccion)
     {
         $cuerpo = cimaPeticion('docSegmentado/contenido/1', [
@@ -160,8 +142,7 @@ if (!function_exists('cimaSeccionFichaTecnica')) {
             return '';
         }
 
-        // Según la cabecera Accept, CIMA responde JSON (con el HTML de la
-        // sección en "contenido") o directamente el HTML.
+        // A veces regresa JSON con el HTML en "contenido" y a veces el HTML directo
         $json = json_decode($cuerpo, true);
 
         if (is_array($json)) {

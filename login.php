@@ -94,11 +94,8 @@ if ($_SESSION['login_attempts'] >= 3) {
 ====================================================== */
 if (isset($_POST['login']) && empty($error)) {
 
-    // A diferencia del resto de formularios, aquí no se corta la página
-    // con un 403: si el token ya no sirve (la pestaña llevaba horas
-    // abierta, o se volvió con el botón "atrás" después de cerrar
-    // sesión) se muestra el aviso dentro del propio formulario y el
-    // médico simplemente vuelve a intentarlo.
+    // Aquí no se manda 403 si el token venció (pestaña vieja o botón atrás),
+    // solo se avisa en el formulario para que lo vuelva a intentar.
     if (!tokenCSRFValido($_POST['csrf_token'] ?? '')) {
 
         registrarLog("Formulario de acceso vencido; se pide reintentar.", "WARNING");
@@ -143,9 +140,7 @@ if (isset($_POST['login']) && empty($error)) {
 
                 /* ==========================================
                    SEGUNDO FACTOR (OTP vía Twilio) - OPCIONAL
-                   Solo se activa si OTP_ENABLED=true en .env Y
-                   el médico tiene teléfono registrado. Si no,
-                   el login continúa exactamente como antes.
+                   Solo con OTP_ENABLED=true y si el médico tiene teléfono
                 ========================================== */
 
                 if (otpHabilitado() && !empty($medico['telefono'])) {
@@ -163,16 +158,11 @@ if (isset($_POST['login']) && empty($error)) {
 
                     $otpEnviado = enviarOTPTwilio($medico['telefono'], $codigo);
 
-                    // Si Twilio no pudo enviar el SMS (límite diario, número
-                    // no verificado, cuenta caída, etc.) NO dejamos al médico
-                    // atorado esperando un código que nunca va a llegar: se
-                    // deja continuar con un solo factor (correo + contraseña),
-                    // igual que si OTP no estuviera habilitado.
+                    // Si Twilio no manda el SMS se deja entrar solo con correo y contraseña,
+                    // para que no se quede esperando un código que no va a llegar.
                     if ($otpEnviado) {
 
-                        // Sesión "pre-autenticada": aún NO se marca $_SESSION['medico'],
-                        // por lo que verificarSesion() seguirá bloqueando el acceso
-                        // hasta que se valide el código en otp_verificar.php.
+                        // Todavía no se pone $_SESSION['medico'], eso lo hace otp_verificar.php
                         $_SESSION['otp_medico_pendiente'] = $medico['id'];
                         $_SESSION['otp_nombre_pendiente'] = $medico['nombre'];
 
@@ -347,7 +337,7 @@ if (isset($_POST['login']) && empty($error)) {
             max-width: 28rem;
         }
 
-        /* Línea de electrocardiograma: se dibuja una sola vez al cargar */
+        /* Línea de electrocardiograma, se anima al cargar */
         .ecg {
             position: absolute;
             left: 0;
@@ -810,7 +800,7 @@ if (isset($_POST['login']) && empty($error)) {
                 <form method="POST" action="login.php" id="loginForm" novalidate>
 
                     <input type="hidden" name="csrf_token" value="<?= generarTokenCSRF() ?>">
-                    <!-- Asegura que el formulario se procese aunque el botón quede deshabilitado al enviar -->
+                    <!-- Va aparte porque el botón se deshabilita al enviar y ya no manda login -->
                     <input type="hidden" name="login" value="1">
 
                     <div class="campo">

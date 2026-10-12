@@ -3,18 +3,8 @@
 /* =====================================================
    MEDICORE PROFESSIONAL SYSTEM
    DETECCIÓN DE CONFLICTOS ENTRE ALERGIAS Y MEDICAMENTOS
-   -----------------------------------------------------
-   Compara las alergias registradas del paciente contra un
-   texto (la receta del expediente o el medicamento que se
-   consulta en el asistente) y avisa si aparece:
-
-   - el mismo fármaco al que es alérgico, o
-   - otro fármaco del mismo grupo (ej. alérgico a la
-     penicilina y le recetan amoxicilina), o
-   - un grupo con reactividad cruzada conocida, como
-     precaución (ej. penicilinas -> cefalosporinas).
-
-   Es una ayuda para el médico, no sustituye su criterio.
+   Busca en la receta o en el medicamento consultado el fármaco al que es alérgico,
+   otro de su mismo grupo o uno con reactividad cruzada (solo es apoyo para el médico)
 ===================================================== */
 
 if (!function_exists('normalizarTextoClinico')) {
@@ -34,11 +24,7 @@ if (!function_exists('normalizarTextoClinico')) {
 }
 
 if (!function_exists('gruposDeAlergia')) {
-    /**
-     * Cada grupo tiene los nombres con los que el médico suele
-     * escribir la alergia (alias) y los fármacos que pertenecen a él.
-     * "cruzada" son grupos con posible reactividad cruzada.
-     */
+    // alias = como suelen escribir la alergia, cruzada = grupos con posible reactividad cruzada
     function gruposDeAlergia()
     {
         return [
@@ -102,7 +88,7 @@ if (!function_exists('separarAlergias')) {
 
         foreach ($partes as $parte) {
             $parte = normalizarTextoClinico($parte);
-            // "alergia a la penicilina" -> "penicilina"
+            // "alergia a la penicilina" se queda como "penicilina"
             $parte = trim(preg_replace('/^(alergia|alergias|alergico|alergica|alergicos)( a| al| de)?( la| el| los| las)?\s*/', '', $parte));
 
             if ($parte !== '' && !in_array($parte, ['ninguna', 'ninguno', 'no', 'niega', 'negadas', 'sin alergias', 'n a'], true)) {
@@ -128,11 +114,7 @@ if (!function_exists('textoContieneTermino')) {
 }
 
 if (!function_exists('detectarConflictosAlergia')) {
-    /**
-     * @param string $texto    Receta o nombre/principio activo del medicamento.
-     * @param string $alergias Alergias del paciente separadas por coma.
-     * @return array Lista de conflictos: alergia, medicamento, nivel (alto|precaucion) y motivo.
-     */
+    // $alergias separadas por coma, regresa cada conflicto con nivel alto o precaucion
     function detectarConflictosAlergia($texto, $alergias)
     {
         $textoNorm = normalizarTextoClinico($texto);

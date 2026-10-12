@@ -1,24 +1,10 @@
 <?php
 
 /* =====================================================
-   MEDICORE PROFESSIONAL SYSTEM
-   API: NOTAS DE CONSULTA
-   -----------------------------------------------------
-   POST api/notas.php?accion=estructurar
-     { "paciente_id": 15, "texto": "..." }
-     -> ordena el texto en formato SOAP con Gemini y
-        revisa el plan contra las alergias del paciente.
-
-   POST api/notas.php?accion=guardar
-     { "id_cliente": "uuid", "paciente_id": 15, "transcripcion": "...",
-       "subjetivo": "", "objetivo": "", "analisis": "", "plan": "",
-       "origen": "voz|texto|sin_conexion", "escrita_en": "ISO 8601" }
-     -> guarda la nota. La usa la página y también el service
-        worker cuando manda las notas que se escribieron sin
-        conexión (Background Sync).
-
-   Seguridad: sesión de médico, token CSRF en la cabecera
-   X-CSRF-Token y límite de uso para el ordenado con IA.
+   API: NOTAS DE CONSULTA (POST con X-CSRF-Token)
+   ?accion=estructurar  { paciente_id, texto }  ordena el texto en SOAP con Gemini
+   ?accion=guardar      { id_cliente, paciente_id, transcripcion, subjetivo, objetivo, analisis, plan, origen, escrita_en }
+                        también la usa sw.js para mandar las notas hechas sin conexión
 ===================================================== */
 
 require_once __DIR__ . '/../config.php';
@@ -68,7 +54,7 @@ try {
             responderNotas(503, ['ok' => false, 'mensaje' => 'Para ordenar la nota hace falta configurar GEMINI_API_KEY. Puedes guardarla tal como está.']);
         }
 
-        // Límite de uso de la IA por sesión
+        // Máx. 10 notas ordenadas con IA cada 5 min
         $ahora = time();
         $_SESSION['notas_ia_uso'] = array_values(array_filter(
             $_SESSION['notas_ia_uso'] ?? [],
