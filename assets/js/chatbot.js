@@ -54,6 +54,12 @@
     return div;
   }
 
+  // COFEPRIS no tiene API, así que solo se deja el enlace a su visor de registros
+  function enlaceCofepris(url) {
+    if (!url) return '';
+    return '<br><a href="' + escapar(url) + '" target="_blank" rel="noopener">Verificar registro sanitario en COFEPRIS</a>';
+  }
+
   function nombreLegible(texto) {
     const t = String(texto || '').trim();
     if (!t) return 'Medicamento sin identificar';
@@ -166,8 +172,9 @@
       html += formatear(datos.respuesta);
 
       if (datos.encontrado) {
-        html += '<div class="msg-fuente">Fuente: ' + escapar(datos.fuente) + ', ' + escapar(datos.medicamento) +
-          '<br><a href="' + escapar(datos.enlace) + '" target="_blank" rel="noopener">Ver ficha técnica completa</a></div>';
+        html += '<div class="msg-fuente">Fuente: ' + escapar(datos.fuente) + (datos.por_principio ? ': ' : ', ') + escapar(datos.medicamento) +
+          '<br><a href="' + escapar(datos.enlace) + '" target="_blank" rel="noopener">Ver ficha técnica completa</a>' +
+          enlaceCofepris(datos.cofepris) + '</div>';
         agregarAlHistorial(pregunta, datos.medicamento, datos.paciente);
       }
 
@@ -224,12 +231,17 @@
         '<p class="escaneo-principio">Principio activo: ' + escapar(m.principios.join(' + ') || 'no se pudo leer') + '</p>' +
         htmlAlertas(m.alertas);
 
-      if (m.encontrado) {
+      if (m.encontrado && m.por_principio) {
+        // Marca de México: la ficha es de otro medicamento con el mismo principio activo
+        html += '<p class="escaneo-cima"><i class="fas fa-circle-check" aria-hidden="true"></i> Ficha de referencia de ' +
+          escapar(String(m.principio_cima || '').toLowerCase()) + ' en CIMA: ' + escapar(nombreLegible(m.nombre_cima)) +
+          ' <a href="' + escapar(m.enlace) + '" target="_blank" rel="noopener">Ficha técnica</a></p>';
+      } else if (m.encontrado) {
         html += '<p class="escaneo-cima"><i class="fas fa-circle-check" aria-hidden="true"></i> En CIMA: ' + escapar(nombreLegible(m.nombre_cima)) +
           (m.receta ? ' (' + escapar(m.receta.toLowerCase()) + ')' : '') +
           ' <a href="' + escapar(m.enlace) + '" target="_blank" rel="noopener">Ficha técnica</a></p>';
       } else {
-        html += '<p class="escaneo-cima sin-cima"><i class="fas fa-circle-info" aria-hidden="true"></i> No está en CIMA (base española); revisa la información del fabricante.</p>';
+        html += '<p class="escaneo-cima sin-cima"><i class="fas fa-circle-info" aria-hidden="true"></i> Este principio activo no está en CIMA; revisa el instructivo del empaque.</p>';
       }
 
       if (selectPaciente.value && (!m.alertas || m.alertas.length === 0)) {
@@ -251,7 +263,8 @@
       html += '</div>';
     }
 
-    html += '<div class="msg-fuente">Lectura de la foto con Gemini; información oficial de CIMA (AEMPS). Confirma siempre con el empaque.</div>';
+    html += '<div class="msg-fuente">Lectura de la foto con Gemini; ficha técnica de CIMA (AEMPS). Confirma siempre con el empaque.' +
+      enlaceCofepris(datos.cofepris) + '</div>';
     return html;
   }
 

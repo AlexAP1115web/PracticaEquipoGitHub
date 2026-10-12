@@ -3,6 +3,7 @@ include("config.php");
 include("security.php");
 require_once __DIR__ . "/config/esquema.php";
 require_once __DIR__ . "/integrations/GeminiAI.php";
+require_once __DIR__ . "/integrations/CimaAPI.php";
 
 verificarSesion();
 prepararEsquemaInnovacion($conexion);
@@ -519,6 +520,11 @@ $iaActiva = geminiDisponible();
             color: var(--gris);
         }
 
+        .nota-apoyo a {
+            color: var(--verde-oscuro);
+            font-weight: 600;
+        }
+
         .historial {
             list-style: none;
         }
@@ -715,13 +721,15 @@ $iaActiva = geminiDisponible();
                 <div class="side-card">
                     <h2>Cómo responde</h2>
                     <ol class="pasos-asistente">
-                        <li>Busca el medicamento en <strong>CIMA</strong>, la base oficial de la Agencia Española de Medicamentos.</li>
+                        <li>Busca el medicamento en <strong>CIMA</strong>, la base oficial de la Agencia Española de Medicamentos. Si es una marca de México, lo busca por su principio activo.</li>
                         <li>Lee la sección de la ficha técnica que corresponde a tu pregunta.</li>
                         <li><?= $iaActiva ? 'Gemini resume ese texto en lenguaje claro, sin agregar datos.' : 'Muestra el texto oficial. Con Gemini activo también lo resume.' ?></li>
                         <li>Si elegiste un paciente, compara el medicamento con sus <strong>alergias</strong> y te avisa.</li>
                     </ol>
                     <p class="nota-apoyo">
                         Es una herramienta de apoyo: no sustituye el criterio clínico ni la ficha técnica completa.
+                        El registro sanitario en México se verifica en el
+                        <a href="<?= htmlspecialchars(COFEPRIS_VISOR) ?>" target="_blank" rel="noopener">visor de COFEPRIS</a>.
                     </p>
                 </div>
 
@@ -749,7 +757,7 @@ $iaActiva = geminiDisponible();
         </div>
     </div>
 
-    <script src="assets/js/chatbot.js?v=3"></script>
+    <script src="assets/js/chatbot.js?v=4"></script>
 </body>
 
 </html>

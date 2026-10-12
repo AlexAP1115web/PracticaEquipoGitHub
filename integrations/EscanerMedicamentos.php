@@ -3,8 +3,8 @@
 /* =====================================================
    MEDICORE PROFESSIONAL SYSTEM
    ESCÁNER DE MEDICAMENTOS (foto de la caja o el frasco)
-   Gemini lee la foto, se busca en CIMA y se revisan las alergias del paciente.
-   La foto no se guarda en el servidor
+   Gemini lee la foto, se busca en CIMA (por nombre o por principio activo si es marca
+   mexicana) y se revisan las alergias del paciente. La foto no se guarda en el servidor
 ===================================================== */
 
 require_once __DIR__ . '/GeminiAI.php';
@@ -121,10 +121,10 @@ if (!function_exists('escanearMedicamento')) {
             }
 
             if (!$cima && $m['nombre_detectado'] !== '') {
-                $cima = cimaBuscarMedicamento($m['nombre_detectado']);
+                $cima = cimaBuscarMedicamento($m['nombre_detectado'], false);
             }
 
-            // Alergias con todo lo leído aunque no esté en CIMA (marcas de México)
+            // Alergias con todo lo leído aunque no esté en CIMA
             $textoRevision = trim(
                 $m['nombre_detectado'] . ' ' . implode(' ', $m['principios']) .
                     ($cima ? ' ' . $cima['nombre'] . ' ' . $cima['principio'] : '')
@@ -142,6 +142,7 @@ if (!function_exists('escanearMedicamento')) {
                 'principio_cima' => $cima['principio'] ?? null,
                 'receta'        => $cima['receta'] ?? '',
                 'enlace'        => $cima['enlace'] ?? null,
+                'por_principio' => !empty($cima['por_principio']),
                 'alertas'       => $alertas
             ];
         }
@@ -163,7 +164,8 @@ if (!function_exists('escanearMedicamento')) {
                     'Eres el asistente de medicamentos de MediCore. Con ÚNICAMENTE el texto oficial que se te da, escribe en español ' .
                         'máximo 4 viñetas que empiecen con "- ": primero para qué se usa y después cuándo no usarlo. ' .
                         'Máximo 80 palabras en total. No inventes datos ni dosis. Sin saludos.',
-                    "Medicamento: {$primeroEnCima['nombre']} (principio activo: {$primeroEnCima['principio']}).\n\n" .
+                    "Medicamento: {$primeroEnCima['nombre']} (principio activo: {$primeroEnCima['principio']}).\n" .
+                        (!empty($primeroEnCima['por_principio']) ? "Es la ficha de otro medicamento con el mismo principio activo; habla del principio activo, no de la marca.\n\n" : "\n") .
                         "Texto oficial (4.1 Indicaciones y 4.3 Contraindicaciones):\n<<<\n" . mb_substr($textoOficial, 0, 6000) . "\n>>>",
                     300
                 );
@@ -209,7 +211,8 @@ if (!function_exists('escanearMedicamento')) {
             'medicamentos'   => $resultado,
             'resumen'        => $resumen,
             'sugerencias'    => $sugerencias,
-            'paciente'       => $paciente ? $paciente['nombre'] : null
+            'paciente'       => $paciente ? $paciente['nombre'] : null,
+            'cofepris'       => COFEPRIS_VISOR
         ];
     }
 }

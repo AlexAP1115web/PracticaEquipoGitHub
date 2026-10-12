@@ -44,17 +44,37 @@ if (!function_exists('cimaPeticion')) {
     }
 }
 
-if (!function_exists('cimaBuscarMedicamento')) {
-    // Se queda con el que tenga ficha por secciones y mejor puntaje (principio igual, comercializado, uno solo)
-    function cimaBuscarMedicamento($termino)
+// Visor oficial de registros sanitarios de México (no tiene API, solo se enlaza)
+if (!defined('COFEPRIS_VISOR')) {
+    define('COFEPRIS_VISOR', 'https://registros.cofepris.gob.mx/BRSDM/');
+}
+
+if (!function_exists('cimaNucleoPrincipio')) {
+    // Deja solo el nombre del fármaco ("clorhidrato de metformina" queda "metformina").
+    // En CIMA "ácido ascórbico" está como "ASCORBICO ACIDO", por eso se quita "ácido" y la sal
+    function cimaNucleoPrincipio($texto)
     {
-        $termino = trim((string) $termino);
+        $texto = function_exists('normalizarTextoClinico') ? normalizarTextoClinico($texto) : mb_strtolower(trim((string) $texto));
+        $sobran = [
+            'acido', 'de', 'sodico', 'sodica', 'sodio', 'potasico', 'potasica', 'potasio', 'calcico', 'calcica', 'calcio',
+            'magnesico', 'clorhidrato', 'hidrocloruro', 'bromhidrato', 'hidrobromuro', 'bromuro', 'maleato', 'sulfato',
+            'fosfato', 'citrato', 'tartrato', 'succinato', 'besilato', 'mesilato', 'monohidrato', 'dihidrato', 'trihidrato'
+        ];
 
-        if (mb_strlen($termino) < 3) {
-            return null;
-        }
+        $palabras = array_filter(explode(' ', $texto), function ($p) use ($sobran) {
+            return $p !== '' && !in_array($p, $sobran, true);
+        });
 
-        $cuerpo = cimaPeticion('medicamentos', ['nombre' => $termino, 'comerc' => 1]);
+        return implode(' ', $palabras);
+    }
+}
+
+if (!function_exists('cimaMejorResultado')) {
+    // Se queda con el que tenga ficha por secciones y mejor puntaje (principio igual, comercializado, uno solo).
+    // $mismoPrincipio = true descarta los que no tengan exactamente ese principio activo
+    function cimaMejorResultado(array $parametros, $termino, $mismoPrincipio = false)
+    {
+        $cuerpo = cimaPeticion('medicamentos', $parametros + ['comerc' => 1]);
 
         if ($cuerpo === null) {
             return null;
@@ -67,9 +87,8 @@ if (!function_exists('cimaBuscarMedicamento')) {
             return null;
         }
 
-        $buscado = function_exists('normalizarTextoClinico')
-            ? normalizarTextoClinico($termino)
-            : mb_strtolower($termino);
+        $buscado = function_exists('normalizarTextoClinico') ? normalizarTextoClinico($termino) : mb_strtolower($termino);
+        $nucleo = cimaNucleoPrincipio($termino);
 
         $mejor = null;
         $mejorPuntaje = -1;
@@ -78,6 +97,11 @@ if (!function_exists('cimaBuscarMedicamento')) {
             $principio = $med['vtm']['nombre'] ?? '';
             $principioNorm = function_exists('normalizarTextoClinico') ? normalizarTextoClinico($principio) : mb_strtolower($principio);
             $nombreNorm = function_exists('normalizarTextoClinico') ? normalizarTextoClinico($med['nombre'] ?? '') : mb_strtolower($med['nombre'] ?? '');
+            $igual = $principioNorm === $buscado || ($nucleo !== '' && cimaNucleoPrincipio($principio) === $nucleo);
+
+            if ($mismoPrincipio && !$igual) {
+                continue;
+            }
 
             $fichaSeccionada = false;
             foreach ($med['docs'] ?? [] as $doc) {
@@ -91,7 +115,7 @@ if (!function_exists('cimaBuscarMedicamento')) {
             }
 
             $puntaje = 0;
-            if ($principioNorm === $buscado) $puntaje += 6;
+            if ($igual) $puntaje += 6;
             if (strpos($nombreNorm, $buscado) === 0) $puntaje += 3;
             if (!empty($med['comerc'])) $puntaje += 2;
             if (strpos($principio, '+') === false) $puntaje += 1;
@@ -107,12 +131,66 @@ if (!function_exists('cimaBuscarMedicamento')) {
         }
 
         return [
-            'nregistro' => $mejor['nregistro'],
-            'nombre'    => $mejor['nombre'] ?? $termino,
-            'principio' => $mejor['vtm']['nombre'] ?? $termino,
-            'receta'    => $mejor['cpresc'] ?? '',
-            'enlace'    => 'https://cima.aemps.es/cima/publico/detalle.html?nregistro=' . rawurlencode($mejor['nregistro'])
+            'nregistro'     => $mejor['nregistro'],
+            'nombre'        => $mejor['nombre'] ?? $termino,
+            'principio'     => trim($mejor['vtm']['nombre'] ?? $termino),
+            'receta'        => $mejor['cpresc'] ?? '',
+            'enlace'        => 'https://cima.aemps.es/cima/publico/detalle.html?nregistro=' . rawurlencode($mejor['nregistro']),
+            'por_principio' => false
         ];
+    }
+}
+
+if (!function_exists('cimaBuscarPorPrincipio')) {
+    // Para marcas de México: se busca otro medicamento con el mismo principio activo y se usa su ficha como referencia
+    function cimaBuscarPorPrincipio($termino)
+    {
+        $nucleo = cimaNucleoPrincipio($termino);
+
+        if (mb_strlen($nucleo) < 4) {
+            return null;
+        }
+
+        $variantes = [$nucleo];
+        $palabras = explode(' ', $nucleo);
+
+        if (count($palabras) > 1) {
+            usort($palabras, function ($a, $b) {
+                return mb_strlen($b) <=> mb_strlen($a);
+            });
+            $variantes[] = $palabras[0];
+        }
+
+        foreach ($variantes as $variante) {
+            $med = cimaMejorResultado(['practiv1' => $variante], $termino, true);
+
+            if ($med) {
+                $med['por_principio'] = true;
+                return $med;
+            }
+        }
+
+        return null;
+    }
+}
+
+if (!function_exists('cimaBuscarMedicamento')) {
+    // Primero por nombre; si no sale (marca mexicana o "ácido ..."), por principio activo
+    function cimaBuscarMedicamento($termino, $tambienPorPrincipio = true)
+    {
+        $termino = trim((string) $termino);
+
+        if (mb_strlen($termino) < 3) {
+            return null;
+        }
+
+        $med = cimaMejorResultado(['nombre' => $termino], $termino);
+
+        if ($med || !$tambienPorPrincipio) {
+            return $med;
+        }
+
+        return cimaBuscarPorPrincipio($termino);
     }
 }
 

@@ -150,7 +150,7 @@ if (!function_exists('identificarConGemini')) {
             'Extraes datos de preguntas sobre medicamentos. Responde solo JSON con las claves ' .
                 '"medicamento" (principio activo en español, en minúsculas, o "" si no hay) y ' .
                 '"tema" (uno de: alergias, efectos, contraindicaciones, interacciones, dosis, embarazo, advertencias, indicaciones). ' .
-                'Si la pregunta usa una marca comercial, devuelve su principio activo.',
+                'Si la pregunta usa una marca comercial (también marcas que se venden en México), devuelve su principio activo; si son varios, sepáralos con coma.',
             $pregunta,
             120,
             true
@@ -179,7 +179,7 @@ if (!function_exists('responderConsultaMedicamento')) {
         $candidatos = candidatosMedicamento($pregunta);
 
         foreach ($candidatos as $candidato) {
-            $medicamento = cimaBuscarMedicamento($candidato);
+            $medicamento = cimaBuscarMedicamento($candidato, false);
             if ($medicamento) {
                 break;
             }
@@ -190,11 +190,26 @@ if (!function_exists('responderConsultaMedicamento')) {
             $extraido = identificarConGemini($pregunta);
 
             if ($extraido && $extraido['medicamento'] !== '') {
-                $medicamento = cimaBuscarMedicamento($extraido['medicamento']);
+                foreach (preg_split('/\s*(?:,|\+|\/|\by\b)\s*/u', $extraido['medicamento']) as $principio) {
+                    $medicamento = cimaBuscarMedicamento($principio);
+                    if ($medicamento) {
+                        break;
+                    }
+                }
                 $usoIA = true;
 
                 if ($extraido['tema']) {
                     $tema = $extraido['tema'];
+                }
+            }
+        }
+
+        // Sin Gemini o sin resultado: se intenta cada palabra como principio activo (marcas de México)
+        if (!$medicamento) {
+            foreach ($candidatos as $candidato) {
+                $medicamento = cimaBuscarPorPrincipio($candidato);
+                if ($medicamento) {
+                    break;
                 }
             }
         }
@@ -210,7 +225,8 @@ if (!function_exists('responderConsultaMedicamento')) {
                 'encontrado' => false,
                 'respuesta' => "No pude identificar el medicamento en tu pregunta. Escribe el nombre del principio activo, por ejemplo: \"efectos secundarios del ibuprofeno\" o \"contraindicaciones de la amoxicilina\".",
                 'alertas'   => [],
-                'fuente'    => 'CIMA (AEMPS)'
+                'fuente'    => 'CIMA (AEMPS)',
+                'cofepris'  => COFEPRIS_VISOR
             ];
         }
 
@@ -276,6 +292,7 @@ if (!function_exists('responderConsultaMedicamento')) {
                     'Puedes resaltar términos clave con **negritas**. No agregues saludos.',
                 "Pregunta del médico: $pregunta\n" .
                     "Medicamento identificado: {$medicamento['nombre']} (principio activo: {$medicamento['principio']}).\n" .
+                    (!empty($medicamento['por_principio']) ? "Es la ficha de otro medicamento con el mismo principio activo (la marca de la pregunta no está en CIMA); responde sobre el principio activo.\n" : '') .
                     "Tema: {$temas[$tema]['titulo']}.\n" .
                     "$contextoAlergias\n\n" .
                     "Texto oficial de la ficha técnica:\n<<<\n" . mb_substr($textoOficial, 0, 9000) . "\n>>>",
@@ -294,6 +311,10 @@ if (!function_exists('responderConsultaMedicamento')) {
         }
 
         $fuente = $usoIA ? 'CIMA (AEMPS) + resumen con Gemini' : 'CIMA (AEMPS)';
+
+        if (!empty($medicamento['por_principio'])) {
+            $fuente .= ', ficha de referencia por principio activo';
+        }
 
         // Historial
         try {
@@ -323,7 +344,9 @@ if (!function_exists('responderConsultaMedicamento')) {
             'alertas'     => $alertas,
             'paciente'    => $paciente ? $paciente['nombre'] : null,
             'fuente'      => $fuente,
-            'enlace'      => $medicamento['enlace']
+            'enlace'      => $medicamento['enlace'],
+            'por_principio' => !empty($medicamento['por_principio']),
+            'cofepris'    => COFEPRIS_VISOR
         ];
     }
 }
