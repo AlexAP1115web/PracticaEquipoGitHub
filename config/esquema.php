@@ -3,9 +3,46 @@
 /* =====================================================
    MEDICORE PROFESSIONAL SYSTEM
    ACTUALIZACIÓN AUTOMÁTICA DEL ESQUEMA
-   Tablas de alergias, chatbot, push y notas. Corre una vez y deja una marca
-   (el mismo SQL está en database/migracion_innovacion.sql)
+   Tablas de alergias, chatbot, push y notas, y llaves con ON DELETE CASCADE para que
+   al borrar un paciente se borre todo lo suyo. Corre una vez y deja una marca
+   (el mismo SQL está en database/migracion_innovacion.sql y database/migracion_cascada.sql)
 ===================================================== */
+
+if (!function_exists('asegurarBorradoEnCascada')) {
+    // Deja la llave $tabla.$columna -> $tablaPadre.id con ON DELETE CASCADE.
+    // Las bases importadas de antes tenían expedientes_ibfk_1 sin CASCADE (error #1451 al borrar)
+    function asegurarBorradoEnCascada($conexion, $tabla, $columna, $tablaPadre, $nombreLlave)
+    {
+        $stmt = $conexion->prepare("
+            SELECT k.CONSTRAINT_NAME, r.DELETE_RULE
+            FROM information_schema.KEY_COLUMN_USAGE k
+            JOIN information_schema.REFERENTIAL_CONSTRAINTS r
+                ON r.CONSTRAINT_SCHEMA = k.CONSTRAINT_SCHEMA AND r.CONSTRAINT_NAME = k.CONSTRAINT_NAME
+            WHERE k.TABLE_SCHEMA = DATABASE() AND k.TABLE_NAME = ? AND k.COLUMN_NAME = ? AND k.REFERENCED_TABLE_NAME = ?
+        ");
+        $stmt->bind_param("sss", $tabla, $columna, $tablaPadre);
+        $stmt->execute();
+        $llaves = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+
+        foreach ($llaves as $llave) {
+            if ($llave['DELETE_RULE'] === 'CASCADE') {
+                return;
+            }
+        }
+
+        foreach ($llaves as $llave) {
+            $conexion->query("ALTER TABLE `$tabla` DROP FOREIGN KEY `" . str_replace('`', '', $llave['CONSTRAINT_NAME']) . "`");
+        }
+
+        // Registros que apuntan a un paciente o expediente que ya no existe (si no, la llave no se puede crear)
+        $conexion->query("DELETE FROM `$tabla` WHERE `$columna` IS NOT NULL AND `$columna` NOT IN (SELECT id FROM `$tablaPadre`)");
+        $conexion->query("
+            ALTER TABLE `$tabla` ADD CONSTRAINT `$nombreLlave`
+            FOREIGN KEY (`$columna`) REFERENCES `$tablaPadre`(id) ON DELETE CASCADE
+        ");
+    }
+}
 
 if (!function_exists('prepararEsquemaInnovacion')) {
     function prepararEsquemaInnovacion($conexion)
@@ -17,10 +54,10 @@ if (!function_exists('prepararEsquemaInnovacion')) {
         }
 
         // Marca en logs/, o en sessions_data/ si en Railway no deja escribir
-        // v2 = ya incluye notas_consulta
+        // v3 = notas_consulta y borrado en cascada de todo lo del paciente
         $marcas = [
-            __DIR__ . '/../logs/.esquema_innovacion_v2',
-            __DIR__ . '/../sessions_data/.esquema_innovacion_v2'
+            __DIR__ . '/../logs/.esquema_innovacion_v3',
+            __DIR__ . '/../sessions_data/.esquema_innovacion_v3'
         ];
 
         foreach ($marcas as $marca) {
@@ -113,6 +150,24 @@ if (!function_exists('prepararEsquemaInnovacion')) {
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             ");
 
+            // Al borrar un paciente (desde la app o desde phpMyAdmin) se borra todo lo suyo
+            $cascadas = [
+                ['expedientes', 'usuario_id', 'usuarios', 'fk_expedientes_usuario'],
+                ['notas_consulta', 'paciente_id', 'usuarios', 'fk_notas_consulta_paciente'],
+                ['chatbot_consultas', 'paciente_id', 'usuarios', 'fk_chatbot_paciente'],
+                ['push_recordatorios', 'expediente_id', 'expedientes', 'fk_recordatorio_expediente']
+            ];
+
+            foreach ($cascadas as $c) {
+                try {
+                    asegurarBorradoEnCascada($conexion, $c[0], $c[1], $c[2], $c[3]);
+                } catch (Exception $e) {
+                    if (function_exists('registrarLog')) {
+                        registrarLog("No se pudo poner ON DELETE CASCADE en {$c[0]}.{$c[1]}: " . $e->getMessage(), "WARNING");
+                    }
+                }
+            }
+
             foreach ($marcas as $marca) {
                 if (@file_put_contents($marca, date('Y-m-d H:i:s')) !== false) {
                     break;
@@ -121,7 +176,7 @@ if (!function_exists('prepararEsquemaInnovacion')) {
             $listo = true;
 
             if (function_exists('registrarLog')) {
-                registrarLog("Esquema de módulos nuevos verificado (alergias, chatbot, push, notas de consulta).", "INFO");
+                registrarLog("Esquema de módulos nuevos verificado (alergias, chatbot, push, notas de consulta y borrado en cascada).", "INFO");
             }
         } catch (Exception $e) {
             if (function_exists('registrarLog')) {

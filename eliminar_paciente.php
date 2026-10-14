@@ -5,8 +5,8 @@ require_once __DIR__ . "/config/esquema.php";
 
 /* ======================================================
    ELIMINAR PACIENTE
-   Se borra en orden (recordatorios, notas, expediente y usuario) dentro de una
-   transacción, así funciona aunque la llave foránea no tenga ON DELETE CASCADE
+   Borra todo lo del paciente de una vez (recordatorios, consultas del asistente, notas,
+   expediente y usuario) en una transacción, aunque la base aún no tenga ON DELETE CASCADE
 ====================================================== */
 
 verificarSesion();
@@ -38,8 +38,7 @@ if (!$paciente) {
 
 $consultas = [
     "DELETE FROM push_recordatorios WHERE expediente_id IN (SELECT id FROM expedientes WHERE usuario_id = ?)",
-    // El historial del asistente es del médico, solo se le quita el paciente
-    "UPDATE chatbot_consultas SET paciente_id = NULL WHERE paciente_id = ?",
+    "DELETE FROM chatbot_consultas WHERE paciente_id = ?",
     "DELETE FROM notas_consulta WHERE paciente_id = ?",
     "DELETE FROM expedientes WHERE usuario_id = ?",
     "DELETE FROM usuarios WHERE id = ? AND rol = 'paciente'"
@@ -62,7 +61,7 @@ try {
 
     $_SESSION['aviso_pacientes'] = [
         'tipo'  => 'exito',
-        'texto' => 'Se eliminó a ' . $paciente['nombre'] . ' junto con su expediente y sus notas.'
+        'texto' => 'Se eliminó a ' . $paciente['nombre'] . ' junto con su expediente, citas, notas y consultas.'
     ];
 } catch (Exception $e) {
     $conexion->rollback();
