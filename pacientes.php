@@ -34,6 +34,9 @@ $result = $stmt->get_result();
 $pacientes = $result->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
+$aviso = $_SESSION['aviso_pacientes'] ?? null;
+unset($_SESSION['aviso_pacientes']);
+
 $total_pacientes = count($pacientes);
 $con_cita = 0;
 $sin_cita = 0;
@@ -82,6 +85,13 @@ foreach ($pacientes as $p) {
                 desde el panel profesional MediCore.
             </p>
         </section>
+
+        <?php if ($aviso): ?>
+            <div class="alerta <?= $aviso['tipo'] === 'exito' ? 'exito' : 'error' ?>" role="status">
+                <i class="fas <?= $aviso['tipo'] === 'exito' ? 'fa-circle-check' : 'fa-triangle-exclamation' ?>"></i>
+                <?= htmlspecialchars($aviso['texto']) ?>
+            </div>
+        <?php endif; ?>
 
         <section class="stats-grid">
 

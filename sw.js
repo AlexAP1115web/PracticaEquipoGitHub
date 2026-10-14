@@ -4,7 +4,7 @@
 
 importScripts('assets/js/cola-notas.js');
 
-const VERSION = 'medicore-admin-v7';
+const VERSION = 'medicore-admin-v8';
 
 // Rutas relativas a la carpeta donde esta sw.js
 const BASE = self.registration.scope;

@@ -649,6 +649,93 @@ button:disabled{
     cursor:not-allowed;
 }
 
+/* Eliminar paciente (expediente) */
+.btn-eliminar,
+.btn-eliminar-confirmar{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    min-height:42px;
+    padding:0 18px;
+    border-radius:var(--radio-control);
+    font-weight:600;
+    font-size:14px;
+    line-height:1;
+    white-space:nowrap;
+    cursor:pointer;
+    transition:background var(--rapido), color var(--rapido), transform 80ms ease-out;
+}
+
+.btn-eliminar{
+    margin-left:auto;
+    background:transparent;
+    border:1px solid transparent;
+    color:var(--alerta);
+}
+
+.btn-eliminar:hover{
+    background:var(--alerta-fondo);
+}
+
+.btn-eliminar-confirmar{
+    background:var(--alerta);
+    border:1px solid var(--alerta);
+    color:#fff;
+}
+
+.btn-eliminar-confirmar:hover{
+    background:#912018;
+}
+
+.btn-eliminar:active,
+.btn-eliminar-confirmar:active{
+    transform:scale(.97);
+}
+
+.dialogo-eliminar{
+    width:min(440px, calc(100% - 32px));
+    margin:auto;
+    padding:24px;
+    border:1px solid var(--linea);
+    border-radius:var(--radio-hoja);
+    background:var(--hoja);
+    color:var(--tinta);
+    box-shadow:var(--shadow-lg);
+}
+
+.dialogo-eliminar[open]{
+    animation:dialogo-entra 180ms ease-out;
+}
+
+.dialogo-eliminar::backdrop{
+    background:rgba(14,59,44,.35);
+}
+
+.dialogo-eliminar h3{
+    font-size:18px;
+    margin-bottom:8px;
+}
+
+.dialogo-eliminar p{
+    color:var(--gris);
+    font-size:14px;
+    line-height:1.55;
+}
+
+.dialogo-acciones{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+    gap:10px;
+    margin-top:22px;
+}
+
+@keyframes dialogo-entra{
+    from{ opacity:0; transform:scale(.96); }
+    to{ opacity:1; transform:scale(1); }
+}
+
 .full-btn{
     width:100%;
 }

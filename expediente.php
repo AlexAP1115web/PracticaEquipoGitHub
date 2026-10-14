@@ -361,6 +361,11 @@ $titulosSOAP = [
                 Exportar PDF
             </button>
 
+            <button type="button" class="btn-eliminar" id="btnEliminarPaciente">
+                <i class="fas fa-trash-can"></i>
+                Eliminar paciente
+            </button>
+
         </section>
 
         <?php if ($mensaje_exito): ?>
@@ -828,9 +833,45 @@ $titulosSOAP = [
 
         </main>
 
+        <dialog class="dialogo-eliminar" id="dialogoEliminar" aria-labelledby="tituloEliminar">
+            <form method="POST" action="eliminar_paciente.php">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generarTokenCSRF()) ?>">
+                <input type="hidden" name="paciente_id" value="<?= (int) $paciente_id ?>">
+
+                <h3 id="tituloEliminar">¿Eliminar a <?= htmlspecialchars($paciente['nombre']) ?>?</h3>
+                <p>
+                    Se borran su cuenta, su expediente, sus citas y sus notas de consulta.
+                    Esto no se puede deshacer.
+                </p>
+
+                <div class="dialogo-acciones">
+                    <button type="button" class="btn-refresh" id="btnCancelarEliminar">Cancelar</button>
+                    <button type="submit" class="btn-eliminar-confirmar">
+                        <i class="fas fa-trash-can"></i>
+                        Eliminar paciente
+                    </button>
+                </div>
+            </form>
+        </dialog>
+
     </div>
 
     <script src="assets/js/nota-voz.js?v=3" defer></script>
+
+    <script>
+        (function () {
+            const dialogo = document.getElementById('dialogoEliminar');
+            document.getElementById('btnEliminarPaciente').addEventListener('click', function () {
+                dialogo.showModal();
+            });
+            document.getElementById('btnCancelarEliminar').addEventListener('click', function () {
+                dialogo.close();
+            });
+            dialogo.querySelector('form').addEventListener('submit', function () {
+                this.querySelector('[type=submit]').disabled = true;
+            });
+        })();
+    </script>
 
     <script>
         function calcularIMC() {
