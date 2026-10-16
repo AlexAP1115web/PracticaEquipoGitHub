@@ -2052,6 +2052,153 @@ form.toolbar .btn-success:last-child{
     }
 }
 
+/* Almacenamiento sin conexión (cache.php) */
+.cache-paginas{
+    list-style:none;
+    margin:0;
+    padding:0;
+}
+
+.cache-pagina{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:14px 22px;
+    border-bottom:1px solid var(--linea-suave);
+}
+
+.cache-pagina-check{
+    display:flex;
+    align-items:center;
+    cursor:pointer;
+}
+
+.cache-pagina-check input{
+    width:18px;
+    height:18px;
+    accent-color:var(--verde);
+}
+
+.cache-pagina-icono{
+    width:36px;
+    height:36px;
+    display:grid;
+    place-items:center;
+    border-radius:9px;
+    background:var(--menta);
+    color:var(--verde-oscuro);
+    flex-shrink:0;
+}
+
+.cache-pagina-texto{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    min-width:0;
+}
+
+.cache-pagina-texto strong{
+    font-size:15px;
+    color:var(--tinta);
+}
+
+.cache-pagina-texto span{
+    font-size:13px;
+    color:var(--gris);
+}
+
+.cache-estado{
+    white-space:nowrap;
+}
+
+.cache-acciones{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:10px;
+    padding:16px 22px 4px;
+}
+
+.cache-mensaje{
+    font-size:14px;
+    color:var(--verde-oscuro);
+    min-height:20px;
+}
+
+.cache-mensaje.error{
+    color:var(--alerta);
+}
+
+.cache-nota{
+    padding:10px 22px 18px;
+    font-size:13px;
+    line-height:1.55;
+    color:var(--gris);
+}
+
+.cache-cabecera{
+    flex-wrap:wrap;
+}
+
+.cache-filtros{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.cache-filtros select{
+    width:auto;
+    min-width:260px;
+    margin:0;
+}
+
+.cache-filtros .btn-eliminar{
+    margin-left:0;
+}
+
+.cache-ruta{
+    font-family:ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size:13px;
+    word-break:break-all;
+}
+
+.cache-vacio{
+    text-align:center;
+    color:var(--gris);
+    padding:28px 18px;
+}
+
+.table-card code{
+    font-family:ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size:12.5px;
+    padding:2px 6px;
+    border-radius:6px;
+    background:var(--menta);
+    color:var(--verde-oscuro);
+    white-space:nowrap;
+}
+
+@media (max-width:768px){
+    .cache-pagina{
+        flex-wrap:wrap;
+        padding:14px 16px;
+    }
+
+    .cache-pagina-texto{
+        flex-basis:calc(100% - 90px);
+    }
+
+    .cache-filtros{
+        width:100%;
+    }
+
+    .cache-filtros select{
+        flex:1;
+        min-width:0;
+    }
+}
+
 @media (prefers-reduced-motion:reduce){
     *,
     *::before,

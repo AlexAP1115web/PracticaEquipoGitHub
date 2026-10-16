@@ -48,14 +48,14 @@
 
   /* ---------- Notas guardadas sin conexión ---------- */
 
-  function mostrarAviso(texto) {
+  function mostrarAviso(texto, icono) {
     const anterior = document.querySelector('.aviso-flotante');
     if (anterior) anterior.remove();
 
     const aviso = document.createElement('div');
     aviso.className = 'aviso-flotante';
     aviso.setAttribute('role', 'status');
-    aviso.innerHTML = '<i class="fas fa-cloud-arrow-up" aria-hidden="true"></i><span></span>';
+    aviso.innerHTML = '<i class="fas ' + (icono || 'fa-cloud-arrow-up') + '" aria-hidden="true"></i><span></span>';
     aviso.querySelector('span').textContent = texto;
     document.body.appendChild(aviso);
 
@@ -91,10 +91,28 @@
     });
   }
 
+  /* ---------- Páginas guardadas (cache.php) ---------- */
+
+  // Al cerrar sesión se borran las páginas de consulta guardadas en este dispositivo
+  function limpiarPaginasGuardadas() {
+    if ('caches' in window && /login\.php/.test(location.pathname) && /logout/.test(location.search)) {
+      caches.delete('medicore-consulta').catch(function () {});
+    }
+  }
+
+  // Sin internet, una página con panel solo pudo venir de la caché
+  function avisarCopiaGuardada() {
+    if (!navigator.onLine && datosPanel()) {
+      mostrarAviso('Sin conexión: estás viendo la copia guardada de esta página.', 'fa-plane');
+    }
+  }
+
   window.addEventListener('online', enviarNotasPendientes);
 
   document.addEventListener('DOMContentLoaded', function () {
     actualizarInsignia();
     enviarNotasPendientes();
+    limpiarPaginasGuardadas();
+    avisarCopiaGuardada();
   });
 })();

@@ -19,6 +19,12 @@
   button:focus-visible { outline: 2px solid #00843D; outline-offset: 2px; }
   .pendientes { margin-top: 16px; padding: 12px 14px; border-radius: 9px; background: #E8EFF8; color: #1F4E8C; font-size: .95rem; line-height: 1.5; }
   .pendientes[hidden] { display: none; }
+  .guardadas { margin-top: 18px; text-align: left; }
+  .guardadas[hidden] { display: none; }
+  .guardadas p { font-size: .95rem; margin: 0 0 8px; color: #15241D; font-weight: 600; }
+  .guardadas a { display: block; padding: 10px 14px; margin-top: 6px; border: 1px solid #D9E2DC; border-radius: 9px;
+                 color: #0E3B2C; text-decoration: none; font-weight: 600; }
+  .guardadas a:hover { border-color: #00843D; }
   @media (prefers-reduced-motion: reduce) { button { transition: none; } button:active { transform: none; } }
 </style>
 </head>
@@ -29,6 +35,9 @@
     <p>MediCore necesita internet para mostrar expedientes, citas y reportes, porque esos datos viven en el servidor y no se guardan en el dispositivo por seguridad.</p>
     <p>Revisa tu conexión y vuelve a intentarlo.</p>
     <p class="pendientes" id="pendientes" hidden></p>
+    <div class="guardadas" id="guardadas" hidden>
+      <p>Páginas guardadas que sí puedes abrir:</p>
+    </div>
     <button type="button" onclick="location.reload()">Reintentar</button>
   </div>
   <script src="assets/js/cola-notas.js"></script>
@@ -43,6 +52,28 @@
             : 'Tienes ' + notas.length + ' notas de consulta guardadas en este dispositivo. Se enviarán solas cuando vuelva el internet.';
           aviso.hidden = false;
         }
+      }).catch(function () {});
+    }
+    // Páginas que el médico guardó en "Sin conexión" (cache.php)
+    var nombres = {
+      'catalogo_enfermedades.php': 'Catálogo de enfermedades',
+      'infografia.php': 'Material educativo',
+      'aviso_privacidad.php': 'Aviso de privacidad'
+    };
+    if ('caches' in window) {
+      caches.open('medicore-consulta').then(function (cache) {
+        return cache.keys();
+      }).then(function (peticiones) {
+        var caja = document.getElementById('guardadas');
+        peticiones.forEach(function (peticion) {
+          var archivo = new URL(peticion.url).pathname.split('/').pop();
+          if (!nombres[archivo]) return;
+          var enlace = document.createElement('a');
+          enlace.href = peticion.url;
+          enlace.textContent = nombres[archivo];
+          caja.appendChild(enlace);
+          caja.hidden = false;
+        });
       }).catch(function () {});
     }
     // Cuando regresa el internet se recarga sola

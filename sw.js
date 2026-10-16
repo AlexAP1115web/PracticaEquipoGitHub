@@ -1,10 +1,14 @@
 // sw.js - Service Worker de MediCore
-// Las paginas PHP NUNCA se cachean (traen datos de pacientes), solo estaticos y offline.html.
+// Las paginas de pacientes NUNCA se cachean, solo estaticos, offline.html y las paginas de
+// consulta que el medico guarda en cache.php (catalogo, material educativo, aviso de privacidad).
 // Tambien manda las notas guardadas sin internet con Background Sync (seccion 6)
 
 importScripts('assets/js/cola-notas.js');
 
-const VERSION = 'medicore-admin-v8';
+const VERSION = 'medicore-admin-v9';
+
+// Cache de paginas de consulta que llena cache.php (no cambia con la version)
+const CONSULTA = 'medicore-consulta';
 
 // Rutas relativas a la carpeta donde esta sw.js
 const BASE = self.registration.scope;
@@ -38,13 +42,13 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// 2. ACTIVATE: borra caches de versiones anteriores
+// 2. ACTIVATE: borra caches de versiones anteriores (la de consulta se queda)
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((nombres) =>
       Promise.all(
         nombres
-          .filter((nombre) => nombre !== VERSION)
+          .filter((nombre) => nombre !== VERSION && nombre !== CONSULTA)
           .map((nombre) => caches.delete(nombre))
       )
     ).then(() => self.clients.claim())
@@ -60,11 +64,9 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(peticion.url);
 
-  // Paginas PHP siempre de la red, sin internet se muestra offline.html
+  // Paginas: primero la red; sin internet la copia guardada o offline.html
   if (peticion.mode === 'navigate') {
-    event.respondWith(
-      fetch(peticion).catch(() => caches.match(OFFLINE))
-    );
+    event.respondWith(paginaDesdeRed(peticion));
     return;
   }
 
@@ -81,7 +83,8 @@ self.addEventListener('fetch', (event) => {
 
     event.respondWith(
       caches.open(VERSION).then((cache) =>
-        cache.match(clave).then((guardada) => {
+        // Si no esta en la cache de la app puede estar en la de consulta (imagenes de paginas guardadas)
+        cache.match(clave).then((guardada) => guardada || caches.match(clave)).then((guardada) => {
           const desdeRed = fetch(peticion)
             .then((respuesta) => {
               if (respuesta.ok || respuesta.type === 'opaque') {
@@ -96,6 +99,26 @@ self.addEventListener('fetch', (event) => {
     );
   }
 });
+
+// Network first. Si el medico guardo esta pagina en cache.php se actualiza la copia;
+// si no la guardo, nunca se escribe en la cache (asi no quedan datos de pacientes)
+async function paginaDesdeRed(peticion) {
+  const clave = peticion.url.split('#')[0].split('?')[0];
+
+  try {
+    const respuesta = await fetch(peticion);
+
+    // caches.match con cacheName no crea la cache si no existe (caches.open si)
+    if (respuesta.ok && await caches.match(clave, { cacheName: CONSULTA })) {
+      const cache = await caches.open(CONSULTA);
+      await cache.put(clave, respuesta.clone());
+    }
+
+    return respuesta;
+  } catch (error) {
+    return (await caches.match(clave, { cacheName: CONSULTA })) || (await caches.match(OFFLINE));
+  }
+}
 
 // 4. PUSH: el aviso llega vacio, los mensajes se piden a api/push.php?accion=pendientes
 const ICONO = new URL('assets/icons/icon-192.png', BASE).href;

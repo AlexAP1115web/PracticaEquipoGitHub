@@ -113,6 +113,11 @@ $menu_items = [
         'titulo'  => 'Material Educativo'
     ],
     [
+        'archivo' => 'cache.php',
+        'icono'   => 'fas fa-hard-drive',
+        'titulo'  => 'Sin conexión'
+    ],
+    [
         'archivo' => 'configuracion.php',
         'icono'   => 'fas fa-gear',
         'titulo'  => 'Configuración'
