@@ -150,12 +150,18 @@ if (!function_exists('enviarPushVacio')) {
     }
 }
 
-if (!function_exists('notificarSuscripciones')) {
-    // Guarda el mensaje de cada suscripción y despierta a su service worker
-    function notificarSuscripciones($conexion, array $suscripciones, $titulo, $cuerpo, $url = 'index.php')
+if (!function_exists('notificarVarios')) {
+    // Guarda los mensajes de cada suscripción y despierta UNA sola vez a su service worker,
+    // que recoge todos los pendientes. Antes se mandaba un push por mensaje: el primero se
+    // llevaba todos los mensajes y los demás llegaban como "Tienes avisos nuevos en MediCore".
+    function notificarVarios($conexion, array $suscripciones, array $mensajes)
     {
         $enviados = 0;
         $eliminados = 0;
+
+        if (empty($mensajes)) {
+            return ['enviados' => 0, 'eliminados' => 0];
+        }
 
         $insertar = $conexion->prepare("
             INSERT INTO push_mensajes (suscripcion_id, titulo, cuerpo, url)
@@ -164,8 +170,14 @@ if (!function_exists('notificarSuscripciones')) {
 
         foreach ($suscripciones as $s) {
             $id = (int) $s['id'];
-            $insertar->bind_param("isss", $id, $titulo, $cuerpo, $url);
-            $insertar->execute();
+
+            foreach ($mensajes as $m) {
+                $titulo = mb_substr($m['titulo'], 0, 150);
+                $cuerpo = mb_substr($m['cuerpo'], 0, 500);
+                $url = $m['url'] ?? 'index.php';
+                $insertar->bind_param("isss", $id, $titulo, $cuerpo, $url);
+                $insertar->execute();
+            }
 
             $codigo = enviarPushVacio($s['endpoint']);
 
@@ -187,6 +199,13 @@ if (!function_exists('notificarSuscripciones')) {
     }
 }
 
+if (!function_exists('notificarSuscripciones')) {
+    function notificarSuscripciones($conexion, array $suscripciones, $titulo, $cuerpo, $url = 'index.php')
+    {
+        return notificarVarios($conexion, $suscripciones, [['titulo' => $titulo, 'cuerpo' => $cuerpo, 'url' => $url]]);
+    }
+}
+
 if (!function_exists('notificarMedico')) {
     function notificarMedico($conexion, $medicoId, $titulo, $cuerpo, $url = 'index.php')
     {
@@ -200,52 +219,193 @@ if (!function_exists('notificarMedico')) {
     }
 }
 
+if (!function_exists('fechaCitaEnTexto')) {
+    // '2026-11-02' -> 'lunes 2 de noviembre'
+    function fechaCitaEnTexto($fecha)
+    {
+        $dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+        $meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+        $t = strtotime($fecha);
+
+        return $dias[(int) date('w', $t)] . ' ' . date('j', $t) . ' de ' . $meses[(int) date('n', $t) - 1];
+    }
+}
+
 if (!function_exists('enviarRecordatoriosDeCitas')) {
-    // Citas de hoy y mañana sin recordatorio. Va a todos los dispositivos
-    // porque todos los médicos ven a todos los pacientes
+    // Avisos de cada cita: una semana antes (o al agendarla si faltan 2 a 7 días), un día antes
+    // y el mismo día. Van a todos los dispositivos porque todos los médicos ven a todos los pacientes.
+    // Las fechas salen de PHP (hora de México); en Railway MySQL está en UTC y en la noche
+    // CURDATE() ya era el día siguiente.
     function enviarRecordatoriosDeCitas($conexion)
     {
-        $citas = $conexion->query("
+        $hoy = date('Y-m-d');
+        $limite = date('Y-m-d', strtotime($hoy . ' +7 days'));
+        $horaActual = date('H:i');
+
+        $stmt = $conexion->prepare("
             SELECT e.id AS expediente_id, e.usuario_id, e.fecha_cita, e.hora_cita, u.nombre
             FROM expedientes e
             INNER JOIN usuarios u ON u.id = e.usuario_id
-            LEFT JOIN push_recordatorios r
-                ON r.expediente_id = e.id AND r.fecha_cita = e.fecha_cita
-            WHERE e.fecha_cita BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 1 DAY)
-              AND r.expediente_id IS NULL
+            WHERE e.fecha_cita BETWEEN ? AND ?
             ORDER BY e.fecha_cita, e.hora_cita
-        ")->fetch_all(MYSQLI_ASSOC);
+        ");
+        $stmt->bind_param("ss", $hoy, $limite);
+        $stmt->execute();
+        $citas = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+
+        $resumen = ['citas' => 0, 'enviados' => 0, 'eliminados' => 0, 'dispositivos' => 0];
+
+        // Qué aviso le toca a cada cita y si ya se mandó
+        $yaEnviado = $conexion->prepare("SELECT 1 FROM push_recordatorios WHERE expediente_id = ? AND fecha_cita = ? AND aviso = ? LIMIT 1");
+        $pendientes = [];
+
+        foreach ($citas as $cita) {
+            $faltan = (int) round((strtotime($cita['fecha_cita']) - strtotime($hoy)) / 86400);
+            $hora = $cita['hora_cita'] ? substr($cita['hora_cita'], 0, 5) : '';
+
+            if ($faltan === 0) {
+                // Una cita de hoy que ya pasó no se avisa
+                if ($hora !== '' && $hora < $horaActual) {
+                    continue;
+                }
+                $aviso = 'hoy';
+            } elseif ($faltan === 1) {
+                $aviso = 'manana';
+            } else {
+                $aviso = 'semana';
+            }
+
+            $idExp = (int) $cita['expediente_id'];
+            $yaEnviado->bind_param("iss", $idExp, $cita['fecha_cita'], $aviso);
+            $yaEnviado->execute();
+
+            if ($yaEnviado->get_result()->fetch_row()) {
+                continue;
+            }
+
+            $cita['aviso'] = $aviso;
+            $cita['faltan'] = $faltan;
+            $cita['hora'] = $hora;
+            $pendientes[] = $cita;
+        }
+
+        $yaEnviado->close();
+        $resumen['citas'] = count($pendientes);
 
         $suscripciones = $conexion->query("SELECT id, endpoint FROM push_suscripciones")->fetch_all(MYSQLI_ASSOC);
-        $resumen = ['citas' => count($citas), 'enviados' => 0, 'eliminados' => 0];
+        $resumen['dispositivos'] = count($suscripciones);
 
-        if (empty($citas) || empty($suscripciones)) {
+        // Sin dispositivos no se marca nada, así se avisa cuando alguien active las notificaciones
+        if (empty($pendientes) || empty($suscripciones)) {
             return $resumen;
         }
 
-        $marcar = $conexion->prepare("INSERT IGNORE INTO push_recordatorios (expediente_id, fecha_cita) VALUES (?, ?)");
+        // Se marca antes de mandar: si dos páginas revisan al mismo tiempo, solo una manda el aviso
+        $marcar = $conexion->prepare("INSERT IGNORE INTO push_recordatorios (expediente_id, fecha_cita, aviso) VALUES (?, ?, ?)");
+        $mensajes = [];
+        $conteo = ['hoy' => 0, 'manana' => 0, 'semana' => 0];
 
-        foreach ($citas as $cita) {
-            $esHoy = $cita['fecha_cita'] === date('Y-m-d');
-            $hora = $cita['hora_cita'] ? ' a las ' . substr($cita['hora_cita'], 0, 5) : '';
-            $titulo = ($esHoy ? 'Cita hoy: ' : 'Cita mañana: ') . $cita['nombre'];
-            $cuerpo = 'Consulta programada' . $hora . '. Toca para abrir el expediente.';
-
-            $r = notificarSuscripciones($conexion, $suscripciones, $titulo, $cuerpo, 'expediente.php?id=' . (int) $cita['usuario_id']);
-            $resumen['enviados'] += $r['enviados'];
-            $resumen['eliminados'] += $r['eliminados'];
-
+        foreach ($pendientes as $cita) {
             $idExp = (int) $cita['expediente_id'];
-            $marcar->bind_param("is", $idExp, $cita['fecha_cita']);
+            $marcar->bind_param("iss", $idExp, $cita['fecha_cita'], $cita['aviso']);
             $marcar->execute();
 
-            if ($r['eliminados'] > 0) {
-                $suscripciones = $conexion->query("SELECT id, endpoint FROM push_suscripciones")->fetch_all(MYSQLI_ASSOC);
+            if ($marcar->affected_rows !== 1) {
+                continue;
+            }
+
+            $conteo[$cita['aviso']]++;
+            $aLas = $cita['hora'] !== '' ? ' a las ' . $cita['hora'] : '';
+            $url = 'expediente.php?id=' . (int) $cita['usuario_id'];
+
+            if ($cita['aviso'] === 'hoy') {
+                $mensajes[] = ['titulo' => 'Cita hoy: ' . $cita['nombre'], 'cuerpo' => 'Consulta' . $aLas . '. Toca para abrir el expediente.', 'url' => $url];
+            } elseif ($cita['aviso'] === 'manana') {
+                $mensajes[] = ['titulo' => 'Cita mañana: ' . $cita['nombre'], 'cuerpo' => 'Consulta el ' . fechaCitaEnTexto($cita['fecha_cita']) . $aLas . '. Toca para abrir el expediente.', 'url' => $url];
+            } else {
+                $mensajes[] = ['titulo' => 'Próxima cita: ' . $cita['nombre'], 'cuerpo' => 'El ' . fechaCitaEnTexto($cita['fecha_cita']) . $aLas . ' (en ' . $cita['faltan'] . ' días). Toca para abrir el expediente.', 'url' => $url];
             }
         }
 
         $marcar->close();
 
+        // Muchas citas de golpe: un solo aviso con el resumen en lugar de llenar la pantalla
+        if (count($mensajes) > 4) {
+            $partes = [];
+            if ($conteo['hoy']) $partes[] = $conteo['hoy'] . ' hoy';
+            if ($conteo['manana']) $partes[] = $conteo['manana'] . ' mañana';
+            if ($conteo['semana']) $partes[] = $conteo['semana'] . ' en los próximos días';
+            $mensajes = [[
+                'titulo' => 'Tienes ' . count($mensajes) . ' citas próximas',
+                'cuerpo' => ucfirst(implode(', ', $partes)) . '. Toca para ver la agenda.',
+                'url'    => 'agenda.php'
+            ]];
+        }
+
+        $r = notificarVarios($conexion, $suscripciones, $mensajes);
+        $resumen['citas'] = array_sum($conteo);
+        $resumen['enviados'] = $r['enviados'];
+        $resumen['eliminados'] = $r['eliminados'];
+
         return $resumen;
+    }
+}
+
+if (!function_exists('revisarRecordatoriosEnSegundoPlano')) {
+    // Railway no tiene cron: cuando el médico abre una página (como máximo cada 10 minutos) o guarda
+    // una cita, se revisan los avisos después de mandar la página, así no la hace más lenta.
+    // $ahora = true no espera los 10 minutos (al guardar una cita)
+    function revisarRecordatoriosEnSegundoPlano($conexion, $ahora = false)
+    {
+        static $programado = false;
+
+        if ($programado || !pushDisponible()) {
+            return;
+        }
+
+        if (!$ahora) {
+            $marcas = [
+                __DIR__ . '/../logs/.ultimos_recordatorios',
+                __DIR__ . '/../sessions_data/.ultimos_recordatorios'
+            ];
+            $ultima = 0;
+
+            foreach ($marcas as $marca) {
+                if (file_exists($marca)) {
+                    $ultima = max($ultima, (int) @filemtime($marca));
+                }
+            }
+
+            if (time() - $ultima < 600) {
+                return;
+            }
+
+            foreach ($marcas as $marca) {
+                if (@touch($marca)) {
+                    break;
+                }
+            }
+        }
+
+        $programado = true;
+
+        register_shutdown_function(function () use ($conexion) {
+            if (function_exists('fastcgi_finish_request')) {
+                fastcgi_finish_request();
+            }
+
+            try {
+                $r = enviarRecordatoriosDeCitas($conexion);
+
+                if ($r['citas'] > 0 && function_exists('registrarLog')) {
+                    registrarLog("Push: recordatorios de " . $r['citas'] . " cita(s), entregados en " . $r['enviados'] . " dispositivo(s).", "INFO");
+                }
+            } catch (Throwable $e) {
+                if (function_exists('registrarLog')) {
+                    registrarLog("Push: no se pudieron revisar los recordatorios: " . $e->getMessage(), "WARNING");
+                }
+            }
+        });
     }
 }

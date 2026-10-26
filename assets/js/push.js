@@ -111,7 +111,7 @@
   });
 
   btnRecordatorios.addEventListener('click', async function () {
-    mostrar('Revisando citas de hoy y mañana…', '');
+    mostrar('Revisando las citas de los próximos 7 días…', '');
     const r = await llamar('recordatorios');
     mostrar(r.mensaje, r.ok ? 'ok' : 'error');
   });

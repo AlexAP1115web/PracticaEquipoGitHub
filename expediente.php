@@ -6,6 +6,8 @@ require_once __DIR__ . "/integrations/GoogleCalendar.php";
 require_once __DIR__ . "/config/esquema.php";
 require_once __DIR__ . "/integrations/Alergias.php";
 require_once __DIR__ . "/integrations/NotasConsulta.php";
+require_once __DIR__ . "/integrations/MapaCorporal.php";
+require_once __DIR__ . "/integrations/WebPush.php";
 
 verificarSesion();
 prepararEsquemaInnovacion($conexion);
@@ -249,9 +251,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $stmt_refresh->close();
 
             /* ==================================================
-               NOTIFICACIONES (correo y Google Calendar)
+               NOTIFICACIONES (correo, Google Calendar y push)
                si fallan o no están configurados no se cae el guardado
             ================================================== */
+
+            // Aviso push a los dispositivos del médico si la cita es en los próximos 7 días
+            if (!empty($fecha_cita)) {
+                revisarRecordatoriosEnSegundoPlano($conexion, true);
+            }
 
             if (!empty($fecha_cita) && !empty($paciente['email'])) {
 
@@ -308,6 +315,12 @@ $resultadoEnfermedades = $conexion->query("SELECT id, nombre FROM enfermedades O
 
 $alertasAlergia = detectarConflictosAlergia($expediente['receta'] ?? '', $paciente['alergias'] ?? '');
 $enfermedadesCatalogo = $resultadoEnfermedades ? $resultadoEnfermedades->fetch_all(MYSQLI_ASSOC) : [];
+
+/* ======================================================
+   MAPA CORPORAL (resumen del último registro)
+====================================================== */
+
+$resumenMapa = resumenMapa(mapaRegistros($conexion, $paciente_id));
 
 /* ======================================================
    NOTAS DE CONSULTA (dictadas o escritas, formato SOAP)
@@ -579,6 +592,59 @@ $titulosSOAP = [
                         </li>
                     <?php endforeach; ?>
                 </ol>
+            </section>
+
+            <!-- ==================================================
+                 MAPA CORPORAL: el paciente marca dónde siente molestias
+            ================================================== -->
+            <section class="card mapa-tarjeta" data-html2canvas-ignore="true">
+                <h3 class="section-title">
+                    <i class="fas fa-person" aria-hidden="true"></i>
+                    Mapa de molestias
+                </h3>
+
+                <div class="mapa-resumen">
+                    <div class="mapa-resumen-texto">
+                        <?php if ($resumenMapa): ?>
+                            <p>
+                                Último registro: <strong><?= date('d/m/Y H:i', strtotime($resumenMapa['fecha'])) ?></strong>.
+                                <?= $resumenMapa['zonas'] === 0 ? 'Sin molestias.' : ($resumenMapa['zonas'] === 1 ? '1 zona marcada.' : $resumenMapa['zonas'] . ' zonas marcadas.') ?>
+                                <?= $resumenMapa['total'] === 1 ? '1 registro en total.' : $resumenMapa['total'] . ' registros en total.' ?>
+                            </p>
+                            <?php if ($resumenMapa['principales']): ?>
+                                <ul class="mapa-lista">
+                                    <?php foreach ($resumenMapa['principales'] as $m): ?>
+                                        <li class="mapa-item">
+                                            <span class="mapa-intensidad-chip" data-nivel="<?= (int) ceil($m['intensidad'] / 2) ?>"><?= (int) $m['intensidad'] ?></span>
+                                            <span class="mapa-item-texto">
+                                                <strong><?= htmlspecialchars($m['zona']) ?></strong>
+                                                <span><?= htmlspecialchars($m['sensacion']) ?></span>
+                                            </span>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
+                        <?php else: ?>
+                            <p>
+                                El paciente toca en una silueta dónde siente molestias y dice qué siente, desde cuándo y qué tan fuerte.
+                                Todavía no hay registros.
+                            </p>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="mapa-resumen-acciones">
+                        <a href="mapa_corporal.php?id=<?= (int) $paciente_id ?>&amp;modo=paciente" class="btn-primary">
+                            <i class="fas fa-hand-pointer" aria-hidden="true"></i>
+                            Entregar al paciente
+                        </a>
+                        <?php if ($resumenMapa): ?>
+                            <a href="mapa_corporal.php?id=<?= (int) $paciente_id ?>" class="btn-refresh">
+                                <i class="fas fa-chart-line" aria-hidden="true"></i>
+                                Ver evolución
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                </div>
             </section>
 
             <section class="card">

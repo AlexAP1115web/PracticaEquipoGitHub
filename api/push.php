@@ -154,9 +154,13 @@ switch ($accion) {
     case 'recordatorios':
         $r = enviarRecordatoriosDeCitas($conexion);
 
-        $mensaje = $r['citas'] === 0
-            ? 'No hay citas pendientes de aviso para hoy ni mañana.'
-            : "Se avisó de {$r['citas']} cita(s) ({$r['enviados']} notificaciones entregadas).";
+        if ($r['dispositivos'] === 0) {
+            $mensaje = 'Ningún dispositivo tiene las notificaciones activadas.';
+        } elseif ($r['citas'] === 0) {
+            $mensaje = 'No hay avisos pendientes: las citas de los próximos 7 días ya se avisaron.';
+        } else {
+            $mensaje = "Se avisó de {$r['citas']} cita(s) en {$r['enviados']} de {$r['dispositivos']} dispositivo(s).";
+        }
 
         responderPush(200, ['ok' => true, 'mensaje' => $mensaje] + $r);
 

@@ -114,6 +114,10 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 try {
     $conexion = new mysqli($host, $user, $pass, $db, (int) $puerto);
     $conexion->set_charset("utf8mb4");
+
+    // MySQL con la misma hora que PHP (México). En Railway el servidor está en UTC y en la noche
+    // CURDATE() ya era el día siguiente: las citas de hoy contaban como de mañana
+    $conexion->query("SET time_zone = '" . date('P') . "'");
 } catch (Exception $e) {
     registrarLog("Fallo crítico de conexión MySQL: " . $e->getMessage(), "CRITICAL");
 

@@ -474,8 +474,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     data-csrf="<?= htmlspecialchars(generarTokenCSRF()) ?>">
 
                     <p style="color:var(--muted);line-height:1.6;margin-bottom:14px;">
-                        Recibe en esta computadora o celular un aviso de las citas de hoy y de mañana, aunque MediCore
-                        esté cerrado. Cada dispositivo se activa por separado.
+                        Recibe en esta computadora o celular un aviso de cada cita una semana antes, un día antes y el
+                        mismo día, aunque MediCore esté cerrado. Cada dispositivo se activa por separado.
                     </p>
 
                     <p id="push-estado" class="push-estado">Revisando…</p>
@@ -508,7 +508,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         .push-estado.ok{background:#dcfce7;color:#166534}
         .push-estado.error{background:#fee2e2;color:#991b1b}
     </style>
-    <script src="assets/js/push.js?v=1"></script>
+    <script src="assets/js/push.js?v=2"></script>
 
 </body>
 

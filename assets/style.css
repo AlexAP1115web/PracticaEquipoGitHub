@@ -2208,3 +2208,1109 @@ form.toolbar .btn-success:last-child{
         scroll-behavior:auto !important;
     }
 }
+
+/* =====================================================
+   MAPA CORPORAL DE MOLESTIAS (mapa_corporal.php)
+   Silueta en SVG, colores por intensidad (1 a 10 en 5 niveles)
+===================================================== */
+
+:root{
+    --mc-base:#DCE5E0;
+    --mc-base-hover:#C7D5CD;
+    --mc-n1:#F7DC8B;
+    --mc-n2:#F3B54A;
+    --mc-n3:#EB8A35;
+    --mc-n4:#D9572A;
+    --mc-n5:#B42318;
+}
+
+.mapa-cab{
+    margin-bottom:18px;
+}
+
+.mapa-cab h2{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:26px;
+    font-weight:700;
+    color:var(--pino);
+    margin-bottom:6px;
+}
+
+.mapa-cab h2 i{
+    color:var(--verde);
+}
+
+.mapa-cab p{
+    color:var(--gris);
+    font-size:15px;
+    max-width:70ch;
+}
+
+.mapa-cab p strong{
+    color:var(--tinta);
+}
+
+/* ---------- Figuras ---------- */
+
+.mapa-figuras{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    background:var(--papel);
+    border:1px solid var(--linea-suave);
+    border-radius:var(--radio-hoja);
+    padding:18px 12px 10px;
+}
+
+.mapa-figura{
+    margin:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    min-width:0;
+}
+
+.mapa-figura svg{
+    display:block;
+    width:100%;
+    max-width:250px;
+    height:auto;
+    overflow:visible;
+}
+
+.mapa-figura figcaption{
+    margin-top:4px;
+    font-size:13px;
+    font-weight:600;
+    color:var(--gris);
+}
+
+.mapa-figura .lado{
+    font-family:'Onest', sans-serif;
+    font-size:10px;
+    fill:var(--gris-claro);
+    text-anchor:middle;
+}
+
+.zona > rect,
+.zona > circle,
+.zona > ellipse{
+    fill:var(--mc-base);
+    stroke:var(--hoja);
+    stroke-width:2;
+    transition:fill 450ms cubic-bezier(.645,.045,.355,1), stroke 160ms ease;
+}
+
+.mapa-figuras .zona[data-nivel="1"] > *{ fill:var(--mc-n1); }
+.mapa-figuras .zona[data-nivel="2"] > *{ fill:var(--mc-n2); }
+.mapa-figuras .zona[data-nivel="3"] > *{ fill:var(--mc-n3); }
+.mapa-figuras .zona[data-nivel="4"] > *{ fill:var(--mc-n4); }
+.mapa-figuras .zona[data-nivel="5"] > *{ fill:var(--mc-n5); }
+
+/* Zona que se marcó en el registro anterior y en este ya no */
+.mapa-figuras .zona.resuelta > *{
+    fill:var(--ok-fondo);
+    stroke:var(--ok);
+    stroke-width:1.6;
+    stroke-dasharray:4 3;
+}
+
+.marca circle{
+    fill:var(--hoja);
+    stroke:rgba(14,59,44,.22);
+    stroke-width:.8;
+}
+
+.marca text{
+    font-family:'Onest', sans-serif;
+    font-size:10px;
+    font-weight:700;
+    fill:var(--tinta);
+    text-anchor:middle;
+    font-variant-numeric:tabular-nums;
+}
+
+.marca text.grande{
+    font-size:11.5px;
+}
+
+.marca{
+    animation:mapa-marca 200ms ease-out;
+    pointer-events:none;
+}
+
+@keyframes mapa-marca{
+    from{ opacity:0; }
+    to{ opacity:1; }
+}
+
+/* Zonas que el paciente puede tocar */
+[data-figuras="registro"] .zona{
+    cursor:pointer;
+    outline:none;
+    -webkit-tap-highlight-color:transparent;
+}
+
+[data-figuras="registro"] .zona:focus-visible > *,
+[data-figuras="registro"] .zona.editando > *{
+    stroke:var(--pino);
+    stroke-width:3;
+}
+
+@media (hover:hover) and (pointer:fine){
+    [data-figuras="registro"] .zona:not([data-nivel]):hover > *{
+        fill:var(--mc-base-hover);
+    }
+}
+
+/* ---------- Evolución (médico) ---------- */
+
+.mapa-evolucion-cuerpo{
+    display:grid;
+    grid-template-columns:minmax(0, 1.1fr) minmax(280px, .9fr);
+    gap:28px;
+    align-items:start;
+}
+
+.mapa-registro-num{
+    font-size:13px;
+    font-weight:600;
+    color:var(--verde-oscuro);
+    font-variant-numeric:tabular-nums;
+}
+
+.mapa-registro-fecha{
+    font-size:20px;
+    font-weight:700;
+    color:var(--pino);
+    margin:2px 0 18px;
+    font-variant-numeric:tabular-nums;
+}
+
+.mapa-subtitulo{
+    font-size:13px;
+    font-weight:700;
+    color:var(--gris);
+    margin:18px 0 6px;
+}
+
+.mapa-subtitulo:first-of-type{
+    margin-top:0;
+}
+
+.mapa-cambios,
+.mapa-lista{
+    list-style:none;
+    margin:0;
+    padding:0;
+}
+
+.mapa-cambio{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:8px 0;
+    border-bottom:1px solid var(--linea-suave);
+    font-size:14px;
+}
+
+.mapa-cambio i{
+    flex:none;
+    display:grid;
+    place-items:center;
+    width:26px;
+    height:26px;
+    border-radius:50%;
+    font-size:12px;
+}
+
+.mapa-cambio.nueva i,
+.mapa-cambio.empeoro i{
+    background:var(--alerta-fondo);
+    color:var(--alerta);
+}
+
+.mapa-cambio.mejoro i,
+.mapa-cambio.desaparecio i{
+    background:var(--ok-fondo);
+    color:var(--ok);
+}
+
+.mapa-cambio.igual i{
+    background:var(--papel);
+    color:var(--gris);
+}
+
+.mapa-cambio-valor{
+    margin-left:auto;
+    padding-left:8px;
+    color:var(--gris);
+    font-size:13px;
+    white-space:nowrap;
+    font-variant-numeric:tabular-nums;
+}
+
+.mapa-cambio-primero{
+    padding:8px 0;
+    color:var(--gris);
+    font-size:14px;
+}
+
+.mapa-item{
+    display:flex;
+    align-items:flex-start;
+    gap:12px;
+    width:100%;
+    padding:10px 0;
+    border-bottom:1px solid var(--linea-suave);
+    text-align:left;
+    font:inherit;
+    color:inherit;
+    background:none;
+}
+
+.mapa-intensidad-chip{
+    flex:none;
+    display:grid;
+    place-items:center;
+    width:32px;
+    height:32px;
+    border-radius:8px;
+    font-weight:700;
+    font-size:15px;
+    color:var(--tinta);
+    font-variant-numeric:tabular-nums;
+}
+
+.mapa-intensidad-chip[data-nivel="1"]{ background:var(--mc-n1); }
+.mapa-intensidad-chip[data-nivel="2"]{ background:var(--mc-n2); }
+.mapa-intensidad-chip[data-nivel="3"]{ background:var(--mc-n3); }
+.mapa-intensidad-chip[data-nivel="4"]{ background:var(--mc-n4); color:#fff; }
+.mapa-intensidad-chip[data-nivel="5"]{ background:var(--mc-n5); color:#fff; }
+
+.mapa-item-texto{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    min-width:0;
+    font-size:14px;
+}
+
+.mapa-item-texto strong{
+    color:var(--tinta);
+    font-weight:600;
+}
+
+.mapa-item-texto > span{
+    color:var(--gris);
+}
+
+.mapa-item-detalle{
+    font-style:italic;
+}
+
+.mapa-comentario{
+    margin:16px 0 0;
+    padding:12px 14px;
+    background:var(--papel);
+    border-left:3px solid var(--verde);
+    border-radius:0 var(--radio-control) var(--radio-control) 0;
+    color:var(--tinta);
+    font-size:14px;
+}
+
+.mapa-linea{
+    display:flex;
+    align-items:flex-start;
+    gap:18px;
+    margin-top:22px;
+    padding-top:20px;
+    border-top:1px solid var(--linea-suave);
+}
+
+.btn-reproducir{
+    flex:none;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    min-height:44px;
+    padding:0 18px;
+    border:1px solid var(--pino);
+    border-radius:var(--radio-control);
+    background:var(--pino);
+    color:#fff;
+    font:inherit;
+    font-weight:600;
+    font-size:14px;
+    cursor:pointer;
+    transition:background var(--rapido), transform 80ms ease-out;
+}
+
+.btn-reproducir[aria-pressed="true"]{
+    background:var(--hoja);
+    color:var(--pino);
+}
+
+.btn-reproducir:active{
+    transform:scale(.97);
+}
+
+.btn-reproducir:disabled{
+    opacity:.45;
+    cursor:not-allowed;
+}
+
+.mapa-linea-pista{
+    flex:1;
+    min-width:0;
+    padding-top:8px;
+}
+
+.mapa-linea input[type="range"]{
+    display:block;
+    width:100%;
+    min-height:0;
+    height:24px;
+    margin:0;
+    padding:0;
+    border:0;
+    background:transparent;
+    box-shadow:none;
+    accent-color:var(--verde);
+    cursor:pointer;
+}
+
+.mapa-marcas{
+    display:flex;
+    justify-content:space-between;
+    list-style:none;
+    margin:4px 0 0;
+    padding:0;
+}
+
+.mapa-marcas button{
+    min-height:32px;
+    padding:0 2px;
+    border:0;
+    background:none;
+    font:inherit;
+    font-size:12px;
+    color:var(--gris);
+    cursor:pointer;
+    white-space:nowrap;
+    font-variant-numeric:tabular-nums;
+}
+
+.mapa-marcas button[aria-current="true"]{
+    color:var(--verde-oscuro);
+    font-weight:700;
+}
+
+/* Con muchos registros solo se ven el primero, el último y el actual */
+.mapa-marcas.denso li:not(:first-child):not(:last-child) button:not([aria-current="true"]){
+    font-size:0;
+    width:10px;
+}
+
+.mapa-marcas.denso li:not(:first-child):not(:last-child) button:not([aria-current="true"])::before{
+    content:"";
+    display:block;
+    width:4px;
+    height:4px;
+    margin:auto;
+    border-radius:50%;
+    background:var(--gris-claro);
+}
+
+.mapa-leyenda{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:8px 16px;
+    margin-top:14px;
+    font-size:12px;
+    color:var(--gris);
+}
+
+.mapa-leyenda ol{
+    display:flex;
+    gap:4px;
+    list-style:none;
+    margin:0;
+    padding:0;
+}
+
+.mapa-leyenda li{
+    padding:3px 8px;
+    border-radius:6px;
+    color:var(--tinta);
+    font-variant-numeric:tabular-nums;
+}
+
+.mapa-leyenda li[data-nivel="1"]{ background:var(--mc-n1); }
+.mapa-leyenda li[data-nivel="2"]{ background:var(--mc-n2); }
+.mapa-leyenda li[data-nivel="3"]{ background:var(--mc-n3); }
+.mapa-leyenda li[data-nivel="4"]{ background:var(--mc-n4); color:#fff; }
+.mapa-leyenda li[data-nivel="5"]{ background:var(--mc-n5); color:#fff; }
+
+.mapa-leyenda-resuelta{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+}
+
+.mapa-leyenda-resuelta::before{
+    content:"";
+    width:14px;
+    height:14px;
+    border-radius:4px;
+    background:var(--ok-fondo);
+    border:1.5px dashed var(--ok);
+}
+
+.mapa-vacio{
+    text-align:center;
+    padding:48px 28px;
+}
+
+.mapa-vacio > i{
+    font-size:34px;
+    color:var(--verde);
+    margin-bottom:12px;
+}
+
+.mapa-vacio h3{
+    font-size:19px;
+    color:var(--pino);
+    margin-bottom:6px;
+}
+
+.mapa-vacio p{
+    color:var(--gris);
+    margin:0 auto 18px;
+    max-width:48ch;
+}
+
+/* ---------- Modo paciente ---------- */
+
+body.modo-paciente .sidebar{
+    display:none;
+}
+
+body.modo-paciente .content{
+    margin:0 auto;
+    max-width:1180px;
+    padding-bottom:40px;
+}
+
+.mapa-paciente-cab{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:16px;
+    margin-bottom:20px;
+}
+
+.mapa-saludo{
+    font-size:15px;
+    font-weight:600;
+    color:var(--verde-oscuro);
+    margin-bottom:2px;
+}
+
+.mapa-paciente-cab h2{
+    font-size:30px;
+    line-height:1.15;
+    font-weight:800;
+    color:var(--pino);
+}
+
+.mapa-instruccion{
+    margin-top:6px;
+    font-size:16px;
+    color:var(--gris);
+}
+
+.btn-salir-paciente{
+    flex:none;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    min-height:40px;
+    max-width:240px;
+    padding:6px 14px;
+    border:1px solid var(--linea);
+    border-radius:var(--radio-control);
+    background:var(--hoja);
+    color:var(--gris);
+    font:inherit;
+    font-size:13px;
+    font-weight:600;
+    text-align:left;
+    cursor:pointer;
+}
+
+.btn-salir-paciente[data-confirmar="1"]{
+    border-color:var(--precaucion);
+    color:var(--precaucion);
+    background:var(--precaucion-fondo);
+}
+
+.mapa-paciente-cuerpo{
+    display:grid;
+    grid-template-columns:minmax(0, 1.3fr) minmax(300px, .9fr);
+    gap:24px;
+    align-items:start;
+}
+
+.mapa-paciente-figuras .mapa-figuras{
+    background:var(--hoja);
+    border-color:var(--linea);
+    padding:22px 14px 12px;
+}
+
+.mapa-paciente-figuras .mapa-figura svg{
+    max-width:300px;
+    max-height:72vh;
+}
+
+.mapa-vista-selector{
+    display:none;
+}
+
+.mapa-paciente-panel{
+    background:var(--hoja);
+    border:1px solid var(--linea);
+    border-radius:var(--radio-hoja);
+    padding:22px;
+}
+
+.mapa-paciente-panel h3{
+    font-size:18px;
+    color:var(--pino);
+    margin-bottom:6px;
+}
+
+.mapa-lista-editable .mapa-item{
+    border:0;
+    border-bottom:1px solid var(--linea-suave);
+    cursor:pointer;
+    align-items:center;
+}
+
+.mapa-item-editar{
+    margin-left:auto;
+    color:var(--gris-claro);
+    font-size:13px;
+}
+
+.mapa-lista-vacia{
+    padding:14px 0;
+    color:var(--gris);
+    font-size:15px;
+}
+
+.btn-anterior{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    width:100%;
+    min-height:46px;
+    margin:6px 0 4px;
+    border:1px dashed var(--verde);
+    border-radius:var(--radio-control);
+    background:var(--ok-fondo);
+    color:var(--verde-oscuro);
+    font:inherit;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+}
+
+.mapa-comentario-campo{
+    display:block;
+    margin-top:18px;
+}
+
+.mapa-comentario-campo > span{
+    display:block;
+    font-size:14px;
+    font-weight:600;
+    color:var(--tinta);
+    margin-bottom:6px;
+}
+
+.mapa-comentario-campo small,
+.mapa-campo small{
+    font-weight:400;
+    color:var(--gris);
+}
+
+.mapa-comentario-campo textarea{
+    margin-bottom:12px;
+    resize:vertical;
+}
+
+.mapa-error{
+    margin:0 0 12px;
+    padding:10px 12px;
+    border-radius:var(--radio-control);
+    background:var(--alerta-fondo);
+    color:var(--alerta);
+    font-size:14px;
+}
+
+.mapa-paciente-acciones{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+}
+
+.btn-grande{
+    width:100%;
+    min-height:52px;
+    font-size:16px;
+}
+
+.btn-grande:disabled{
+    opacity:.45;
+    cursor:not-allowed;
+}
+
+.btn-sin-molestias{
+    min-height:46px;
+    border:1px solid var(--linea);
+    border-radius:var(--radio-control);
+    background:var(--hoja);
+    color:var(--gris);
+    font:inherit;
+    font-size:15px;
+    font-weight:600;
+    cursor:pointer;
+}
+
+.btn-sin-molestias[data-confirmar="1"]{
+    border-color:var(--verde);
+    color:var(--verde-oscuro);
+}
+
+.mapa-listo{
+    max-width:520px;
+    margin:40px auto;
+    padding:40px 28px;
+    text-align:center;
+    background:var(--hoja);
+    border:1px solid var(--linea);
+    border-radius:var(--radio-hoja);
+    outline:none;
+}
+
+.mapa-listo > i{
+    font-size:52px;
+    color:var(--verde);
+    margin-bottom:14px;
+}
+
+.mapa-listo h2{
+    font-size:26px;
+    color:var(--pino);
+    margin-bottom:8px;
+}
+
+.mapa-listo p{
+    color:var(--gris);
+    font-size:16px;
+    margin-bottom:22px;
+}
+
+/* ---------- Hoja para describir la molestia ---------- */
+
+.mapa-hoja{
+    width:min(580px, calc(100vw - 32px));
+    max-height:calc(100dvh - 32px);
+    margin:auto;
+    padding:0;
+    border:0;
+    border-radius:16px;
+    background:var(--hoja);
+    color:var(--tinta);
+    box-shadow:var(--shadow-lg);
+    overflow:auto;
+    overscroll-behavior:contain;
+}
+
+.mapa-hoja[open]{
+    animation:mapa-hoja-entra 200ms cubic-bezier(.215,.61,.355,1);
+}
+
+.mapa-hoja::backdrop{
+    background:rgba(14,59,44,.45);
+}
+
+@keyframes mapa-hoja-entra{
+    from{ opacity:0; transform:scale(.97); }
+    to{ opacity:1; transform:none; }
+}
+
+.mapa-hoja form{
+    padding:18px 22px 22px;
+}
+
+.mapa-hoja-cab{
+    position:sticky;
+    top:-18px;
+    z-index:2;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin:-18px -22px 6px;
+    padding:14px 22px 10px;
+    background:var(--hoja);
+    border-bottom:1px solid var(--linea-suave);
+}
+
+.mapa-hoja-cab h3{
+    font-size:21px;
+    color:var(--pino);
+}
+
+.mapa-hoja-cerrar{
+    flex:none;
+    width:44px;
+    height:44px;
+    border:0;
+    border-radius:50%;
+    background:var(--papel);
+    color:var(--gris);
+    font-size:18px;
+    cursor:pointer;
+}
+
+.mapa-campo{
+    border:0;
+    margin:0;
+    padding:14px 0 4px;
+    min-width:0;
+}
+
+.mapa-campo legend,
+.mapa-detalle-campo > span{
+    display:block;
+    padding:0;
+    margin-bottom:10px;
+    font-size:15px;
+    font-weight:700;
+    color:var(--tinta);
+}
+
+.mapa-chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+}
+
+.mapa-chips label,
+.mapa-intensidad label{
+    position:relative;
+    cursor:pointer;
+}
+
+.mapa-chips input,
+.mapa-intensidad input{
+    position:absolute;
+    opacity:0;
+    width:1px;
+    height:1px;
+    pointer-events:none;
+}
+
+.mapa-chips span{
+    display:inline-flex;
+    align-items:center;
+    min-height:44px;
+    padding:0 16px;
+    border:1px solid var(--linea);
+    border-radius:999px;
+    background:var(--hoja);
+    font-size:15px;
+    color:var(--tinta);
+    transition:background var(--rapido), border-color var(--rapido), color var(--rapido);
+}
+
+.mapa-chips input:checked + span{
+    background:var(--pino);
+    border-color:var(--pino);
+    color:#fff;
+}
+
+.mapa-chips input:focus-visible + span,
+.mapa-intensidad input:focus-visible + span{
+    box-shadow:var(--foco);
+}
+
+.mapa-fecha{
+    display:block;
+    margin-top:10px;
+    max-width:240px;
+}
+
+.mapa-fecha input{
+    margin:0;
+}
+
+.mapa-intensidad{
+    display:grid;
+    grid-template-columns:repeat(10, 1fr);
+    gap:6px;
+}
+
+.mapa-intensidad span{
+    display:grid;
+    place-items:center;
+    height:48px;
+    border-radius:10px;
+    border:2px solid transparent;
+    background:var(--hoja);
+    font-size:17px;
+    font-weight:700;
+    color:var(--tinta);
+    font-variant-numeric:tabular-nums;
+    transition:background var(--rapido), color var(--rapido), box-shadow var(--rapido);
+}
+
+.mapa-intensidad label[data-nivel="1"] span{ border-color:var(--mc-n1); }
+.mapa-intensidad label[data-nivel="2"] span{ border-color:var(--mc-n2); }
+.mapa-intensidad label[data-nivel="3"] span{ border-color:var(--mc-n3); }
+.mapa-intensidad label[data-nivel="4"] span{ border-color:var(--mc-n4); }
+.mapa-intensidad label[data-nivel="5"] span{ border-color:var(--mc-n5); }
+
+.mapa-intensidad label[data-nivel="1"] input:checked + span{ background:var(--mc-n1); }
+.mapa-intensidad label[data-nivel="2"] input:checked + span{ background:var(--mc-n2); }
+.mapa-intensidad label[data-nivel="3"] input:checked + span{ background:var(--mc-n3); }
+.mapa-intensidad label[data-nivel="4"] input:checked + span{ background:var(--mc-n4); color:#fff; }
+.mapa-intensidad label[data-nivel="5"] input:checked + span{ background:var(--mc-n5); color:#fff; }
+
+.mapa-intensidad input:checked + span{
+    box-shadow:0 0 0 2px var(--hoja), 0 0 0 4px var(--pino);
+}
+
+.mapa-intensidad-guia{
+    display:flex;
+    justify-content:space-between;
+    margin-top:6px;
+    font-size:12px;
+    color:var(--gris);
+}
+
+.mapa-detalle-campo{
+    display:block;
+}
+
+.mapa-detalle-campo input{
+    margin-bottom:6px;
+}
+
+
+.mapa-hoja-acciones{
+    position:sticky;
+    bottom:-22px;
+    z-index:2;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    margin:14px -22px -22px;
+    padding:12px 22px 22px;
+    background:var(--hoja);
+    border-top:1px solid var(--linea-suave);
+}
+
+.mapa-hoja-acciones .mapa-error{
+    margin:0;
+}
+
+.btn-quitar{
+    min-height:46px;
+    border:1px solid #F3C5C0;
+    border-radius:var(--radio-control);
+    background:var(--hoja);
+    color:var(--alerta);
+    font:inherit;
+    font-size:15px;
+    font-weight:600;
+    cursor:pointer;
+}
+
+/* ---------- Tarjeta en el expediente ---------- */
+
+.mapa-resumen{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:16px 24px;
+}
+
+.mapa-resumen-texto{
+    flex:1 1 320px;
+    min-width:0;
+}
+
+.mapa-resumen-texto > p{
+    color:var(--gris);
+    font-size:14px;
+    margin-bottom:10px;
+}
+
+.mapa-resumen .mapa-lista .mapa-item{
+    padding:8px 0;
+}
+
+.mapa-resumen-acciones{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+}
+
+@media (hover:hover) and (pointer:fine){
+    .mapa-lista-editable .mapa-item:hover strong{
+        color:var(--verde-oscuro);
+    }
+
+    .btn-sin-molestias:hover,
+    .btn-salir-paciente:hover{
+        border-color:var(--verde);
+        color:var(--verde-oscuro);
+    }
+
+    .mapa-chips span:hover{
+        border-color:var(--verde);
+    }
+
+    .btn-reproducir:hover:not(:disabled){
+        background:var(--pino-2);
+        color:#fff;
+    }
+
+    .mapa-marcas button:hover{
+        color:var(--verde-oscuro);
+    }
+}
+
+@media (max-width:900px){
+    .mapa-evolucion-cuerpo,
+    .mapa-paciente-cuerpo{
+        grid-template-columns:1fr;
+    }
+}
+
+@media (max-width:700px){
+    /* El paciente ve un lado a la vez para que la silueta sea más grande */
+    .mapa-vista-selector{
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:6px;
+        margin-bottom:10px;
+        padding:4px;
+        border-radius:12px;
+        background:var(--papel);
+        border:1px solid var(--linea-suave);
+    }
+
+    .mapa-vista-selector button{
+        min-height:44px;
+        border:0;
+        border-radius:9px;
+        background:none;
+        font:inherit;
+        font-size:15px;
+        font-weight:600;
+        color:var(--gris);
+        cursor:pointer;
+    }
+
+    .mapa-vista-selector button[aria-pressed="true"]{
+        background:var(--hoja);
+        color:var(--pino);
+        box-shadow:0 1px 3px rgba(14,59,44,.12);
+    }
+
+    [data-figuras="registro"]{
+        grid-template-columns:1fr;
+    }
+
+    [data-figuras="registro"][data-vista-activa="frente"] .mapa-figura[data-vista="espalda"],
+    [data-figuras="registro"][data-vista-activa="espalda"] .mapa-figura[data-vista="frente"]{
+        display:none;
+    }
+
+    .mapa-paciente-figuras .mapa-figura svg{
+        max-height:62vh;
+    }
+
+    .mapa-paciente-cab h2{
+        font-size:25px;
+    }
+
+    .mapa-linea{
+        flex-direction:column;
+        align-items:stretch;
+    }
+
+    .btn-reproducir{
+        justify-content:center;
+    }
+}
+
+@media (max-width:768px){
+    body.modo-paciente .content{
+        padding-bottom:32px;
+    }
+}
+
+@media (max-width:640px){
+    /* La hoja sale desde abajo en el celular */
+    .mapa-hoja{
+        width:100%;
+        max-width:100%;
+        max-height:92dvh;
+        margin:auto 0 0;
+        border-radius:18px 18px 0 0;
+    }
+
+    .mapa-hoja[open]{
+        animation:mapa-hoja-sube 240ms cubic-bezier(.215,.61,.355,1);
+    }
+
+    .mapa-hoja form{
+        padding:14px 16px 0;
+    }
+
+    .mapa-hoja-cab{
+        top:-14px;
+        margin:-14px -16px 6px;
+        padding:12px 16px 10px;
+    }
+
+    .mapa-hoja-acciones{
+        bottom:0;
+        margin:14px -16px 0;
+        padding:12px 16px calc(14px + env(safe-area-inset-bottom));
+    }
+
+    .mapa-intensidad{
+        grid-template-columns:repeat(5, 1fr);
+    }
+
+    .mapa-chips span{
+        padding:0 14px;
+    }
+}
+
+@keyframes mapa-hoja-sube{
+    from{ transform:translateY(24px); opacity:.6; }
+    to{ transform:none; opacity:1; }
+}

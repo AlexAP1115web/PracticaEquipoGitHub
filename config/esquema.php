@@ -3,9 +3,10 @@
 /* =====================================================
    MEDICORE PROFESSIONAL SYSTEM
    ACTUALIZACIÓN AUTOMÁTICA DEL ESQUEMA
-   Tablas de alergias, chatbot, push y notas, y llaves con ON DELETE CASCADE para que
+   Tablas de alergias, chatbot, push, notas y mapa corporal, y llaves con ON DELETE CASCADE para que
    al borrar un paciente se borre todo lo suyo. Corre una vez y deja una marca
-   (el mismo SQL está en database/migracion_innovacion.sql y database/migracion_cascada.sql)
+   (el mismo SQL está en database/migracion_innovacion.sql, database/migracion_cascada.sql
+   y database/migracion_mapa_corporal.sql)
 ===================================================== */
 
 if (!function_exists('asegurarBorradoEnCascada')) {
@@ -55,9 +56,10 @@ if (!function_exists('prepararEsquemaInnovacion')) {
 
         // Marca en logs/, o en sessions_data/ si en Railway no deja escribir
         // v3 = notas_consulta y borrado en cascada de todo lo del paciente
+        // v4 = mapa corporal de molestias y tres avisos por cita (semana, mañana y hoy)
         $marcas = [
-            __DIR__ . '/../logs/.esquema_innovacion_v3',
-            __DIR__ . '/../sessions_data/.esquema_innovacion_v3'
+            __DIR__ . '/../logs/.esquema_innovacion_v4',
+            __DIR__ . '/../sessions_data/.esquema_innovacion_v4'
         ];
 
         foreach ($marcas as $marca) {
@@ -119,15 +121,30 @@ if (!function_exists('prepararEsquemaInnovacion')) {
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             ");
 
-            // Citas que ya recibieron recordatorio (evita avisos repetidos)
+            // Avisos de cita ya enviados (evita repetidos). aviso = semana, manana u hoy
             $conexion->query("
                 CREATE TABLE IF NOT EXISTS push_recordatorios (
                     expediente_id INT NOT NULL,
                     fecha_cita DATE NOT NULL,
+                    aviso VARCHAR(12) NOT NULL DEFAULT 'hoy',
                     enviado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    PRIMARY KEY (expediente_id, fecha_cita)
+                    PRIMARY KEY (expediente_id, fecha_cita, aviso)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             ");
+
+            // Bases de antes: un solo aviso por cita. Se agrega la columna aviso a la llave
+            $columnaAviso = $conexion->query("SHOW COLUMNS FROM push_recordatorios LIKE 'aviso'");
+
+            if ($columnaAviso && $columnaAviso->num_rows === 0) {
+                $conexion->query("
+                    ALTER TABLE push_recordatorios
+                        ADD COLUMN aviso VARCHAR(12) NOT NULL DEFAULT 'hoy' AFTER fecha_cita,
+                        DROP PRIMARY KEY,
+                        ADD PRIMARY KEY (expediente_id, fecha_cita, aviso)
+                ");
+                // Lo que ya se avisó un día antes queda como "manana" para no repetirlo
+                $conexion->query("UPDATE push_recordatorios SET aviso = 'manana' WHERE fecha_cita > DATE(enviado_en)");
+            }
 
             // Notas SOAP. id_cliente viene del navegador para no duplicar notas offline
             $conexion->query("
@@ -150,12 +167,46 @@ if (!function_exists('prepararEsquemaInnovacion')) {
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             ");
 
+            // Mapa corporal: cada registro es lo que marcó el paciente en una consulta
+            $conexion->query("
+                CREATE TABLE IF NOT EXISTS mapa_registros (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    id_cliente CHAR(36) NOT NULL UNIQUE,
+                    paciente_id INT NOT NULL,
+                    medico_id INT NOT NULL,
+                    comentario VARCHAR(300) NULL,
+                    creado_en DATETIME NOT NULL,
+                    INDEX idx_mapa_paciente (paciente_id, creado_en),
+                    CONSTRAINT fk_mapa_registros_paciente
+                        FOREIGN KEY (paciente_id) REFERENCES usuarios(id)
+                        ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            ");
+
+            // Molestias de cada registro: zona del cuerpo, qué siente, desde cuándo e intensidad (1 a 10)
+            $conexion->query("
+                CREATE TABLE IF NOT EXISTS mapa_molestias (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    registro_id INT NOT NULL,
+                    zona VARCHAR(40) NOT NULL,
+                    sensacion VARCHAR(30) NOT NULL,
+                    intensidad TINYINT UNSIGNED NOT NULL,
+                    desde DATE NULL,
+                    detalle VARCHAR(200) NULL,
+                    INDEX idx_mapa_zona (zona),
+                    CONSTRAINT fk_mapa_molestias_registro
+                        FOREIGN KEY (registro_id) REFERENCES mapa_registros(id)
+                        ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            ");
+
             // Al borrar un paciente (desde la app o desde phpMyAdmin) se borra todo lo suyo
             $cascadas = [
                 ['expedientes', 'usuario_id', 'usuarios', 'fk_expedientes_usuario'],
                 ['notas_consulta', 'paciente_id', 'usuarios', 'fk_notas_consulta_paciente'],
                 ['chatbot_consultas', 'paciente_id', 'usuarios', 'fk_chatbot_paciente'],
-                ['push_recordatorios', 'expediente_id', 'expedientes', 'fk_recordatorio_expediente']
+                ['push_recordatorios', 'expediente_id', 'expedientes', 'fk_recordatorio_expediente'],
+                ['mapa_registros', 'paciente_id', 'usuarios', 'fk_mapa_registros_paciente']
             ];
 
             foreach ($cascadas as $c) {
@@ -176,7 +227,7 @@ if (!function_exists('prepararEsquemaInnovacion')) {
             $listo = true;
 
             if (function_exists('registrarLog')) {
-                registrarLog("Esquema de módulos nuevos verificado (alergias, chatbot, push, notas de consulta y borrado en cascada).", "INFO");
+                registrarLog("Esquema de módulos nuevos verificado (alergias, chatbot, push, notas de consulta, mapa corporal y borrado en cascada).", "INFO");
             }
         } catch (Exception $e) {
             if (function_exists('registrarLog')) {

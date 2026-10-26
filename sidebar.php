@@ -63,6 +63,12 @@ if (isset($conexion) && $conexion instanceof mysqli) {
     if ($resultado_citas) {
         $citas_hoy_sidebar = (int) ($resultado_citas->fetch_assoc()['total'] ?? 0);
     }
+
+    // Recordatorios push de citas (semana, mañana y hoy) sin necesidad de cron
+    require_once __DIR__ . '/config/esquema.php';
+    require_once __DIR__ . '/integrations/WebPush.php';
+    prepararEsquemaInnovacion($conexion);
+    revisarRecordatoriosEnSegundoPlano($conexion);
 }
 
 $menu_items = [
@@ -75,7 +81,7 @@ $menu_items = [
         'archivo' => 'pacientes.php',
         'icono'   => 'fas fa-user-injured',
         'titulo'  => 'Pacientes',
-        'extras'  => ['nuevo_paciente.php', 'expediente.php']
+        'extras'  => ['nuevo_paciente.php', 'expediente.php', 'mapa_corporal.php']
     ],
     [
         'archivo' => 'agenda.php',

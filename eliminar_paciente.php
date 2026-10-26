@@ -6,7 +6,7 @@ require_once __DIR__ . "/config/esquema.php";
 /* ======================================================
    ELIMINAR PACIENTE
    Borra todo lo del paciente de una vez (recordatorios, consultas del asistente, notas,
-   expediente y usuario) en una transacción, aunque la base aún no tenga ON DELETE CASCADE
+   mapa corporal, expediente y usuario) en una transacción, aunque la base aún no tenga ON DELETE CASCADE
 ====================================================== */
 
 verificarSesion();
@@ -40,6 +40,8 @@ $consultas = [
     "DELETE FROM push_recordatorios WHERE expediente_id IN (SELECT id FROM expedientes WHERE usuario_id = ?)",
     "DELETE FROM chatbot_consultas WHERE paciente_id = ?",
     "DELETE FROM notas_consulta WHERE paciente_id = ?",
+    "DELETE FROM mapa_molestias WHERE registro_id IN (SELECT id FROM mapa_registros WHERE paciente_id = ?)",
+    "DELETE FROM mapa_registros WHERE paciente_id = ?",
     "DELETE FROM expedientes WHERE usuario_id = ?",
     "DELETE FROM usuarios WHERE id = ? AND rol = 'paciente'"
 ];
@@ -61,7 +63,7 @@ try {
 
     $_SESSION['aviso_pacientes'] = [
         'tipo'  => 'exito',
-        'texto' => 'Se eliminó a ' . $paciente['nombre'] . ' junto con su expediente, citas, notas y consultas.'
+        'texto' => 'Se eliminó a ' . $paciente['nombre'] . ' junto con su expediente, citas, notas, mapa de molestias y consultas.'
     ];
 } catch (Exception $e) {
     $conexion->rollback();

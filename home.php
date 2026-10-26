@@ -1426,7 +1426,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['accion']) && $_POST['a
                         <i class="fas fa-bell" aria-hidden="true"></i>
                         <div>
                             <h3>Notificaciones push</h3>
-                            <p>Recordatorios de las citas de hoy y mañana en el celular o la computadora, aunque MediCore esté cerrado.</p>
+                            <p>Recordatorios de cada cita una semana antes, un día antes y el mismo día, en el celular o la computadora, aunque MediCore esté cerrado.</p>
                         </div>
                     </li>
                     <li>
