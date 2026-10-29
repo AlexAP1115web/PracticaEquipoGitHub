@@ -13,6 +13,7 @@ LIMITE_PAGINA_MS="${LIMITE_PAGINA_MS:-3000}"
 CUERPO=$(mktemp)
 fallas=0
 filas=""
+version=""
 
 medir() {
     # Hasta 2 intentos para no alarmar por un corte de red de un segundo
@@ -44,6 +45,11 @@ revisar() {
         fallas=$((fallas + 1))
     fi
 
+    # La versión se guarda aquí porque el archivo de respuesta se reutiliza en cada revisión
+    if [ "$ruta" = "/salud.php" ]; then
+        version=$(grep -o '"version":"[^"]*"' "$CUERPO" 2>/dev/null | head -1 | cut -d'"' -f4)
+    fi
+
     printf "%-32s %s  %5s ms  %s\n" "$nombre" "$codigo" "$ms" "$resultado"
     filas+="| $nombre | $codigo | $ms ms | $limite ms | $resultado |"$'\n'
 }
@@ -61,7 +67,7 @@ if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
         echo "|---|---|---|---|---|"
         printf "%s" "$filas"
         echo ""
-        echo "Versión publicada: $(grep -o '"version":"[^"]*"' "$CUERPO" 2>/dev/null | head -1 | cut -d'"' -f4)"
+        echo "Versión publicada: ${version:-sin dato}"
     } >> "$GITHUB_STEP_SUMMARY"
 fi
 
