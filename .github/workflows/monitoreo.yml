@@ -1,0 +1,33 @@
+# =====================================================
+# MEDICORE PROFESSIONAL SYSTEM
+# Monitoreo programado de producción (Railway): disponibilidad y tiempos de respuesta.
+# Si algo falla, GitHub manda un correo al dueño del repositorio.
+# =====================================================
+
+name: Monitoreo MediCore
+
+on:
+  schedule:
+    - cron: '17,47 * * * *'   # cada 30 min, lejos del inicio de la hora (GitHub se satura a las :00)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  revisar:
+    name: Revisar producción
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    env:
+      URL_APP: https://practicaequipogithub-production.up.railway.app
+      LIMITE_SALUD_MS: 1500
+      LIMITE_PAGINA_MS: 3000
+
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Revisar salud, disponibilidad y tiempos de respuesta
+        run: bash pruebas/monitoreo.sh

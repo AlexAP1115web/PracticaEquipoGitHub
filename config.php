@@ -121,6 +121,9 @@ try {
 } catch (Exception $e) {
     registrarLog("Fallo crítico de conexión MySQL: " . $e->getMessage(), "CRITICAL");
 
+    // 503 para que el healthcheck y el monitoreo detecten la falla (antes salía como 200)
+    http_response_code(503);
+
     die("
         <div style='font-family:Arial;background:#fff1f2;color:#991b1b;padding:30px;margin:40px;border-radius:18px;border:1px solid #fecdd3;'>
             <h2>⚠ Error de infraestructura</h2>

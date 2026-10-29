@@ -1,0 +1,81 @@
+# =====================================================
+# MEDICORE PROFESSIONAL SYSTEM
+# Integración continua: cada push o pull request a main pasa por estas pruebas.
+# Railway tiene activado "Wait for CI": solo publica el commit si este flujo termina bien.
+# =====================================================
+
+name: CI MediCore
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pruebas:
+    name: Pruebas antes de publicar
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # Base de datos MySQL desechable, solo para las pruebas
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: medicore_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASS: root
+      DB_NAME: medicore_ci
+      CI_CORREO: ci@medicore.test
+      CI_PASSWORD: PruebaCI-2026
+
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Instalar PHP 8.2 (igual que en Railway)
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mysqli, mbstring, curl, gd, zip, openssl
+          tools: composer
+          coverage: none
+
+      - name: Instalar dependencias de Composer
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: "Etapa 1: revisar sintaxis de PHP"
+        run: bash pruebas/sintaxis.sh
+
+      - name: "Etapa 2: preparar base de datos de prueba"
+        run: bash pruebas/preparar_bd.sh
+
+      - name: "Etapa 3: pruebas de humo de todos los módulos"
+        run: bash pruebas/humo.sh
+
+      - name: Guardar el registro del servidor si algo falló
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: registro-pruebas
+          path: |
+            pruebas/salida/
+            logs/
+          retention-days: 7

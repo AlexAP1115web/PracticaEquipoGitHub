@@ -9,3 +9,7 @@ sessions_data
 .vscode
 *.md
 database/scripts_temporales
+
+# Pruebas y flujos de GitHub Actions: no se publican en el servidor
+pruebas
+.github

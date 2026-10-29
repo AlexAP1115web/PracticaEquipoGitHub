@@ -26,3 +26,6 @@ Desktop.ini
 
 # Script temporal para importar a Railway (trae el password)
 importar_a_railway.php
+
+# Salida de las pruebas automáticas
+pruebas/salida/
