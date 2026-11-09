@@ -1,8 +1,10 @@
 /* =====================================================
-   MEDICORE: MAPA CORPORAL DE MOLESTIAS
+   MEDICORE: SOMAMAP, MAPA INTERACTIVO DE SÍNTOMAS
    - Dibuja la silueta (frente y espalda) en SVG; cada zona es un elemento que se puede tocar
    - Modo paciente: el paciente toca una zona y dice qué siente, desde cuándo y qué tan fuerte
    - Evolución: el médico recorre los registros y ve cómo cambiaron las molestias
+   - Pre-consulta (preconsulta.php): el paciente lo llena en su celular; la página agrega sus
+     respuestas con window.somaMapAntesDeEnviar y no hay vista de evolución
 ===================================================== */
 
 (function () {
@@ -270,8 +272,10 @@
      3. EVOLUCIÓN (médico)
   --------------------------------------------------- */
 
+  const esPreconsulta = datos.modo === 'preconsulta';
   const vistaEvolucion = document.getElementById('vistaEvolucion');
-  const figurasEvo = vistaEvolucion.querySelector('[data-figuras="evolucion"]');
+  const conEvolucion = !!vistaEvolucion;
+  const figurasEvo = conEvolucion ? vistaEvolucion.querySelector('[data-figuras="evolucion"]') : null;
   const rango = document.getElementById('evoRango');
   const marcasLinea = document.getElementById('evoMarcas');
   const btnReproducir = document.getElementById('btnReproducir');
@@ -279,8 +283,10 @@
   let indice = 0;
   let temporizador = null;
 
-  figurasEvo.appendChild(crearFigura('frente', false));
-  figurasEvo.appendChild(crearFigura('espalda', false));
+  if (conEvolucion) {
+    figurasEvo.appendChild(crearFigura('frente', false));
+    figurasEvo.appendChild(crearFigura('espalda', false));
+  }
 
   function cambios(actual, anterior) {
     if (!anterior) {
@@ -349,7 +355,7 @@
     if (!lista) {
       ulCambios.innerHTML = '<li class="mapa-cambio-primero">Es el primer registro del paciente.</li>';
     } else if (!lista.length) {
-      ulCambios.innerHTML = '<li class="mapa-cambio-primero">Sin molestias en los dos registros.</li>';
+      ulCambios.innerHTML = '<li class="mapa-cambio-primero">Sin síntomas en los dos registros.</li>';
     } else {
       ulCambios.innerHTML = lista.map(function (c) {
         const t = TEXTO_CAMBIO[c.tipo];
@@ -368,7 +374,7 @@
       ? actual.molestias.map(function (m) {
         return '<li class="mapa-item">' + htmlMolestia(m, actual.fecha, true) + '</li>';
       }).join('')
-      : '<li class="mapa-cambio-primero">El paciente indicó que no tiene molestias.</li>';
+      : '<li class="mapa-cambio-primero">El paciente indicó que no tiene síntomas.</li>';
 
     const comentario = document.getElementById('evoComentario');
     comentario.hidden = !actual.comentario;
@@ -384,6 +390,9 @@
   function pausar() {
     clearInterval(temporizador);
     temporizador = null;
+    if (!conEvolucion) {
+      return;
+    }
     btnReproducir.setAttribute('aria-pressed', 'false');
     btnReproducir.querySelector('i').className = 'fas fa-play';
     btnReproducir.querySelector('span').textContent = indice >= registros.length - 1 ? 'Reproducir de nuevo' : 'Reproducir';
@@ -410,6 +419,9 @@
   }
 
   function prepararEvolucion() {
+    if (!conEvolucion) {
+      return;
+    }
     pausar();
     const hay = registros.length > 0;
     document.getElementById('mapaVacio').hidden = hay;
@@ -430,18 +442,20 @@
     btnReproducir.querySelector('span').textContent = 'Reproducir';
   }
 
-  btnReproducir.addEventListener('click', reproducir);
-  rango.addEventListener('input', function () {
-    pausar();
-    mostrar(parseInt(rango.value, 10));
-  });
-  marcasLinea.addEventListener('click', function (e) {
-    const b = e.target.closest('button[data-indice]');
-    if (b) {
+  if (conEvolucion) {
+    btnReproducir.addEventListener('click', reproducir);
+    rango.addEventListener('input', function () {
       pausar();
-      mostrar(parseInt(b.dataset.indice, 10));
-    }
-  });
+      mostrar(parseInt(rango.value, 10));
+    });
+    marcasLinea.addEventListener('click', function (e) {
+      const b = e.target.closest('button[data-indice]');
+      if (b) {
+        pausar();
+        mostrar(parseInt(b.dataset.indice, 10));
+      }
+    });
+  }
 
   /* ---------------------------------------------------
      4. MODO PACIENTE (registro)
@@ -461,6 +475,8 @@
   const errorReg = document.getElementById('registroError');
   const comentarioReg = document.getElementById('registroComentario');
 
+  const textoBtnGuardar = btnGuardar.innerHTML;
+  const textoBtnSin = btnSinMolestias.textContent.trim();
   let borrador = {};
   let zonaActual = null;
   let idCliente = uuid();
@@ -646,17 +662,24 @@
     if (guardando) {
       return;
     }
+
+    // En la pre-consulta la página agrega el token y las respuestas del cuestionario
+    const extra = typeof window.somaMapAntesDeEnviar === 'function' ? window.somaMapAntesDeEnviar() : {};
+    if (extra === false) {
+      return;
+    }
+
     guardando = true;
     errorReg.hidden = true;
     btnGuardar.disabled = true;
     btnSinMolestias.disabled = true;
     btnGuardar.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Guardando…';
 
-    fetch(datos.api + '?accion=guardar', {
+    fetch(datos.api + '?accion=' + (esPreconsulta ? 'responder' : 'guardar'), {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': datos.csrf },
-      body: JSON.stringify({
+      body: JSON.stringify(Object.assign({
         id_cliente: idCliente,
         paciente_id: datos.paciente.id,
         comentario: comentarioReg.value.trim(),
@@ -664,7 +687,7 @@
         molestias: sinMolestias ? [] : listaBorrador().map(function (m) {
           return { zona: m.zona, sensacion: m.sensacion, intensidad: m.intensidad, desde: m.desde, detalle: m.detalle };
         })
-      })
+      }, extra))
     })
       .then(function (r) {
         return r.json().catch(function () {
@@ -675,7 +698,7 @@
         if (!res.ok) {
           throw new Error(res.mensaje || 'No se pudo guardar.');
         }
-        registros = res.registros;
+        registros = res.registros || registros;
         borrador = {};
         idCliente = uuid();
         comentarioReg.value = '';
@@ -683,6 +706,7 @@
         const listo = document.getElementById('registroListo');
         listo.hidden = false;
         listo.focus();
+        raiz.dispatchEvent(new CustomEvent('somamap:guardado'));
       })
       .catch(function (err) {
         errorReg.textContent = navigator.onLine === false
@@ -693,7 +717,7 @@
       .finally(function () {
         guardando = false;
         btnSinMolestias.disabled = false;
-        btnGuardar.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i> Terminar y guardar';
+        btnGuardar.innerHTML = textoBtnGuardar;
         refrescarRegistro();
       });
   }
@@ -713,7 +737,7 @@
     btnSinMolestias.textContent = 'Toca otra vez para confirmar';
     setTimeout(function () {
       delete btnSinMolestias.dataset.confirmar;
-      btnSinMolestias.textContent = 'No tengo molestias';
+      btnSinMolestias.textContent = textoBtnSin;
     }, 4000);
   });
 
@@ -726,17 +750,24 @@
     borrador = {};
     idCliente = uuid();
     document.body.classList.add('modo-paciente');
-    vistaEvolucion.hidden = true;
+    if (conEvolucion) {
+      vistaEvolucion.hidden = true;
+    }
     vistaRegistro.hidden = false;
     document.getElementById('registroCuerpo').hidden = false;
     document.getElementById('registroListo').hidden = true;
     errorReg.hidden = true;
     refrescarRegistro();
     window.scrollTo(0, 0);
-    history.replaceState(null, '', '?id=' + datos.paciente.id + '&modo=paciente');
+    if (!esPreconsulta) {
+      history.replaceState(null, '', '?id=' + datos.paciente.id + '&modo=paciente');
+    }
   }
 
   function salirModoPaciente() {
+    if (!conEvolucion) {
+      return;
+    }
     document.body.classList.remove('modo-paciente');
     vistaRegistro.hidden = true;
     vistaEvolucion.hidden = false;
@@ -764,7 +795,7 @@
     if (accion === 'salir-paciente') {
       if (Object.keys(borrador).length && b.dataset.confirmar !== '1') {
         b.dataset.confirmar = '1';
-        b.querySelector('span').textContent = 'Hay molestias sin guardar. Toca otra vez para salir';
+        b.querySelector('span').textContent = 'Hay síntomas sin guardar. Toca otra vez para salir';
         setTimeout(function () {
           delete b.dataset.confirmar;
           b.querySelector('span').textContent = 'Salir (médico)';
@@ -786,6 +817,10 @@
 
   if (datos.modo === 'registro') {
     entrarModoPaciente();
+  } else if (esPreconsulta) {
+    // preconsulta.php muestra el mapa cuando el paciente termina el cuestionario
+    document.body.classList.add('modo-paciente');
+    refrescarRegistro();
   } else {
     prepararEvolucion();
   }

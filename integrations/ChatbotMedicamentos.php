@@ -23,17 +23,22 @@ if (!function_exists('temasChatbot')) {
             'efectos' => [
                 'titulo'    => 'Efectos secundarios (reacciones adversas)',
                 'secciones' => ['4.8'],
-                'palabras'  => ['efecto', 'efectos', 'secundario', 'secundarios', 'adverso', 'adversos', 'adversas', 'reaccion', 'reacciones', 'provoca', 'causa']
+                'palabras'  => ['efecto', 'efectos', 'secundario', 'secundarios', 'adverso', 'adversos', 'adversas', 'reaccion', 'reacciones', 'provoca', 'causa',
+                                'engorda', 'adelgaza', 'somnolencia', 'sueno', 'mareo', 'mareos', 'nauseas', 'vomito', 'diarrea', 'estrenimiento',
+                                'hace dano', 'hace mal', 'dano al', 'dana']
             ],
             'contraindicaciones' => [
                 'titulo'    => 'Contraindicaciones',
                 'secciones' => ['4.3'],
-                'palabras'  => ['contraindicacion', 'contraindicaciones', 'contraindicado', 'contraindicada', 'prohibido']
+                'palabras'  => ['contraindicacion', 'contraindicaciones', 'contraindicado', 'contraindicada', 'prohibido',
+                                'no debe', 'no deben', 'quien no', 'quienes no', 'insuficiencia', 'renal', 'hepatica', 'gastritis', 'ulcera',
+                                'padece', 'padecen', 'enfermedad', 'diabetico', 'diabetica', 'hipertenso', 'hipertensa', 'asmatico', 'asmatica']
             ],
             'interacciones' => [
                 'titulo'    => 'Interacciones con otros medicamentos',
                 'secciones' => ['4.5'],
-                'palabras'  => ['interaccion', 'interacciones', 'mezclar', 'combinar', 'junto', 'juntos', 'alcohol', 'interactua']
+                'palabras'  => ['interaccion', 'interacciones', 'mezclar', 'mezcla', 'combinar', 'combina', 'junto', 'juntos', 'alcohol', 'cerveza',
+                                'interactua', 'al mismo tiempo', 'a la vez', 'anticonceptivos']
             ],
             'embarazo' => [
                 'titulo'    => 'Embarazo y lactancia',
@@ -43,17 +48,28 @@ if (!function_exists('temasChatbot')) {
             'dosis' => [
                 'titulo'    => 'Posología (dosis)',
                 'secciones' => ['4.2'],
-                'palabras'  => ['dosis', 'posologia', 'dosificacion', 'cada cuanto', 'cuanto debe', 'cuantos mg', 'cuanto se']
+                'palabras'  => ['dosis', 'posologia', 'dosificacion', 'cada cuanto', 'cada cuantas', 'cuanto debe', 'cuantos mg', 'cuanto se',
+                                'cuanto', 'cuanta', 'cuantas', 'cuantos', 'veces al dia', 'horas', 'maxima', 'maximo', 'miligramos',
+                                'nino', 'ninos', 'nina', 'ninas', 'bebe', 'bebes', 'pediatrico', 'pediatrica', 'edad', 'ayunas',
+                                'con comida', 'con alimentos', 'como se toma', 'como tomar', 'administrar', 'administra']
             ],
             'advertencias' => [
                 'titulo'    => 'Advertencias y precauciones',
                 'secciones' => ['4.4'],
-                'palabras'  => ['precaucion', 'precauciones', 'advertencia', 'advertencias', 'cuidado', 'riesgo', 'riesgos']
+                'palabras'  => ['precaucion', 'precauciones', 'advertencia', 'advertencias', 'cuidado', 'riesgo', 'riesgos',
+                                'seguro', 'segura', 'peligroso', 'peligrosa', 'ancianos', 'adultos mayores', 'dependencia', 'adiccion',
+                                'adictivo', 'manejar', 'conducir']
             ],
             'indicaciones' => [
                 'titulo'    => 'Indicaciones (para qué sirve)',
                 'secciones' => ['4.1'],
-                'palabras'  => ['sirve', 'indicacion', 'indicaciones', 'utiliza', 'usa', 'para que']
+                'palabras'  => ['sirve', 'indicacion', 'indicaciones', 'utiliza', 'usa', 'para que', 'funciona', 'trata', 'se receta']
+            ],
+            // Preguntas que no caen en un solo tema: se le dan varias secciones a la IA
+            'general' => [
+                'titulo'    => 'Información general de la ficha técnica',
+                'secciones' => ['4.1', '4.2', '4.3', '4.4', '4.5', '4.8'],
+                'palabras'  => []
             ],
         ];
     }
@@ -104,7 +120,13 @@ if (!function_exists('candidatosMedicamento')) {
             'dame', 'dime', 'informacion', 'sobre', 'acerca', 'quiero', 'saber', 'necesito', 'favor', 'hola', 'gracias',
             'mas', 'muy', 'algun', 'alguna', 'otros', 'otras', 'otro', 'otra', 'este', 'esta', 'ese', 'esa', 'tiene',
             'ser', 'esta', 'estan', 'producir', 'produce', 'dar', 'da', 'tomar', 'toma', 'cada', 'cuanto', 'cuantos',
-            'mg', 'ml', 'comprimidos', 'tabletas', 'capsulas', 'jarabe', 'mi', 'tu', 'puedes', 'explica', 'explicame'
+            'mg', 'ml', 'comprimidos', 'tabletas', 'capsulas', 'jarabe', 'mi', 'tu', 'puedes', 'explica', 'explicame',
+            // Palabras de preguntas escritas a mano que no son medicamentos
+            'alguien', 'darle', 'darte', 'darles', 'estando', 'pasa', 'pasaria', 'tomo', 'tomas', 'tomarlo', 'tomarla', 'usar', 'uso',
+            'hace', 'crea', 'partir', 'onda', 'adultos', 'mayores', 'persona', 'personas', 'gente', 'mujer', 'mujeres', 'hombre',
+            'recomiendas', 'recomienda', 'bueno', 'buena', 'malo', 'mala', 'tanto', 'algo', 'cosa', 'cosas', 'dia', 'dias',
+            'diario', 'semana', 'semanas', 'mes', 'meses', 'ano', 'anos', 'veces', 'doctor', 'doctora', 'medico', 'medica',
+            'receta', 'recetar', 'recete', 'normal', 'puede', 'podria', 'seria', 'debo', 'dosis', 'tomando', 'toman', 'algo'
         ];
 
         foreach (temasChatbot() as $tema) {
@@ -149,7 +171,9 @@ if (!function_exists('identificarConGemini')) {
         $json = geminiGenerar(
             'Extraes datos de preguntas sobre medicamentos. Responde solo JSON con las claves ' .
                 '"medicamento" (principio activo en español, en minúsculas, o "" si no hay) y ' .
-                '"tema" (uno de: alergias, efectos, contraindicaciones, interacciones, dosis, embarazo, advertencias, indicaciones). ' .
+                '"tema" (uno de: alergias, efectos, contraindicaciones, interacciones, dosis, embarazo, advertencias, indicaciones, general). ' .
+                'Usa "dosis" para cuánto, cada cuánto, a qué edad o cómo se toma; "contraindicaciones" si pregunta si alguien con una enfermedad puede tomarlo; ' .
+                '"general" si pregunta varias cosas a la vez o no encaja en ningún tema. ' .
                 'Si la pregunta usa una marca comercial (también marcas que se venden en México), devuelve su principio activo; si son varios, sepáralos con coma.',
             $pregunta,
             120,
@@ -169,24 +193,71 @@ if (!function_exists('identificarConGemini')) {
     }
 }
 
+if (!function_exists('esSaludoChatbot')) {
+    // "hola", "gracias", "¿qué puedes hacer?": se contesta sin buscar medicamento
+    function esSaludoChatbot($pregunta)
+    {
+        $texto = normalizarTextoClinico($pregunta);
+
+        return (bool) preg_match('/^(hola|buenas|buen dia|buenos dias|buenas tardes|buenas noches|gracias|muchas gracias|ok|okey|que puedes hacer|que haces|ayuda|como funcionas|quien eres)( [a-z]+)?$/', $texto);
+    }
+}
+
 if (!function_exists('responderConsultaMedicamento')) {
     function responderConsultaMedicamento($conexion, $medicoId, $pregunta, $pacienteId = null)
     {
+        if (esSaludoChatbot($pregunta)) {
+            return [
+                'ok'         => true,
+                'encontrado' => false,
+                'respuesta'  => "Hola. Soy el asistente de medicamentos de MediCore. Pregúntame como se lo preguntarías a un colega, por ejemplo:\n" .
+                    "- ¿Cuánto paracetamol le doy a un niño de 5 años?\n" .
+                    "- ¿Puedo dar ibuprofeno a un paciente con gastritis?\n" .
+                    "- ¿El clonazepam crea dependencia?\n" .
+                    "Si eliges un paciente arriba, reviso también sus alergias.",
+                'alertas'    => [],
+                'fuente'     => 'CIMA (AEMPS)',
+                'cofepris'   => COFEPRIS_VISOR
+            ];
+        }
+
         $temas = temasChatbot();
         $tema = detectarTemaChatbot($pregunta, $temaExplicito);
         $medicamento = null;
         $usoIA = false;
         $candidatos = candidatosMedicamento($pregunta);
+        $extraido = null;
 
-        foreach ($candidatos as $candidato) {
-            $medicamento = cimaBuscarMedicamento($candidato, false);
-            if ($medicamento) {
-                break;
+        // Pregunta escrita a mano sin un tema claro: la IA dice de qué medicamento y de qué tema se trata
+        if (!$temaExplicito && geminiDisponible()) {
+            $extraido = identificarConGemini($pregunta);
+
+            if ($extraido) {
+                $usoIA = true;
+                $tema = $extraido['tema'] ?: 'general';
+            }
+        }
+
+        if ($extraido && $extraido['medicamento'] !== '') {
+            foreach (preg_split('/\s*(?:,|\+|\/|\by\b)\s*/u', $extraido['medicamento']) as $principio) {
+                $medicamento = cimaBuscarMedicamento($principio);
+                if ($medicamento) {
+                    break;
+                }
+            }
+        }
+
+        if (!$medicamento) {
+            foreach ($candidatos as $candidato) {
+                $medicamento = cimaBuscarMedicamento($candidato, false);
+                if ($medicamento) {
+                    break;
+                }
             }
         }
 
         // Marca comercial o pregunta poco clara: se le pide ayuda a Gemini
-        if (!$medicamento && geminiDisponible()) {
+        if (!$medicamento && !$extraido && geminiDisponible()) {
             $extraido = identificarConGemini($pregunta);
 
             if ($extraido && $extraido['medicamento'] !== '') {
@@ -234,9 +305,14 @@ if (!function_exists('responderConsultaMedicamento')) {
 
         // Texto oficial de la ficha técnica
         $textoOficial = '';
+        $porSeccion = count($temas[$tema]['secciones']) > 2 ? 2200 : 9000;
 
         foreach ($temas[$tema]['secciones'] as $seccion) {
-            $textoOficial .= cimaSeccionFichaTecnica($medicamento['nregistro'], $seccion) . "\n\n";
+            $textoSeccion = cimaSeccionFichaTecnica($medicamento['nregistro'], $seccion);
+
+            if ($textoSeccion !== '') {
+                $textoOficial .= "[Sección $seccion]\n" . mb_substr($textoSeccion, 0, $porSeccion) . "\n\n";
+            }
         }
 
         $textoOficial = trim($textoOficial);
@@ -287,6 +363,8 @@ if (!function_exists('responderConsultaMedicamento')) {
                 'Eres el asistente de medicamentos de MediCore, un sistema clínico usado por médicos en México. ' .
                     'Responde en español, claro y breve (máximo 170 palabras), usando viñetas que empiecen con "- ". ' .
                     'Usa ÚNICAMENTE la información oficial de la ficha técnica que se te da (CIMA, AEMPS); no inventes datos, dosis ni porcentajes. ' .
+                    'Contesta exactamente lo que preguntó el médico con sus propias palabras (por ejemplo, si pregunta cuánto darle a un niño, da la posología pediátrica; ' .
+                    'si pregunta si alguien con una enfermedad puede tomarlo, di si está contraindicado o requiere precaución). ' .
                     'Si el texto oficial no responde la pregunta, dilo. Si la pregunta no trata de medicamentos, responde que solo ayudas con medicamentos. ' .
                     'Si hay un conflicto de alergia, la primera línea debe empezar con "ALERTA:". ' .
                     'Puedes resaltar términos clave con **negritas**. No agregues saludos.',
@@ -295,7 +373,7 @@ if (!function_exists('responderConsultaMedicamento')) {
                     (!empty($medicamento['por_principio']) ? "Es la ficha de otro medicamento con el mismo principio activo (la marca de la pregunta no está en CIMA); responde sobre el principio activo.\n" : '') .
                     "Tema: {$temas[$tema]['titulo']}.\n" .
                     "$contextoAlergias\n\n" .
-                    "Texto oficial de la ficha técnica:\n<<<\n" . mb_substr($textoOficial, 0, 9000) . "\n>>>",
+                    "Texto oficial de la ficha técnica:\n<<<\n" . mb_substr($textoOficial, 0, 14000) . "\n>>>",
                 700
             );
 

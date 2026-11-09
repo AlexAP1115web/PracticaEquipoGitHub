@@ -2,7 +2,7 @@
 
 /* =====================================================
    MEDICORE PROFESSIONAL SYSTEM
-   MAPA CORPORAL DE MOLESTIAS
+   SOMAMAP: MAPA INTERACTIVO DE SÍNTOMAS
    El paciente toca una zona de la silueta y dice qué siente, desde cuándo y con qué
    intensidad. Cada vez que lo hace se guarda un registro con sus molestias, así el médico
    puede ver cómo cambiaron de una consulta a otra.
@@ -194,7 +194,7 @@ if (!function_exists('guardarRegistroMapa')) {
         $stmt->close();
 
         if ($existente) {
-            return ['ok' => true, 'repetido' => true, 'registros' => mapaRegistros($conexion, $pacienteId)];
+            return ['ok' => true, 'repetido' => true, 'registro_id' => (int) $existente['id'], 'registros' => mapaRegistros($conexion, $pacienteId)];
         }
 
         $zonas = mapaZonas();
@@ -211,7 +211,7 @@ if (!function_exists('guardarRegistroMapa')) {
             $intensidad = intval($m['intensidad'] ?? 0);
 
             if (!isset($zonas[$zona]) || !isset($sensaciones[$sensacion]) || $intensidad < 1 || $intensidad > 10) {
-                return ['ok' => false, 'mensaje' => 'Una de las molestias tiene datos incompletos. Revísala e intenta de nuevo.'];
+                return ['ok' => false, 'mensaje' => 'Uno de los síntomas tiene datos incompletos. Revísalo e intenta de nuevo.'];
             }
 
             // Una zona por registro; si viene repetida se queda la última
@@ -227,7 +227,7 @@ if (!function_exists('guardarRegistroMapa')) {
         $sinMolestias = !empty($entrada['sin_molestias']);
 
         if (!$molestias && !$sinMolestias) {
-            return ['ok' => false, 'mensaje' => 'Marca al menos una zona o indica que no tienes molestias.'];
+            return ['ok' => false, 'mensaje' => 'Marca al menos una zona o indica que no tienes síntomas.'];
         }
 
         $comentario = mb_substr(trim(strip_tags((string) ($entrada['comentario'] ?? ''))), 0, 300);
@@ -265,7 +265,7 @@ if (!function_exists('guardarRegistroMapa')) {
             throw $e;
         }
 
-        return ['ok' => true, 'registros' => mapaRegistros($conexion, $pacienteId)];
+        return ['ok' => true, 'registro_id' => (int) $registroId, 'registros' => mapaRegistros($conexion, $pacienteId)];
     }
 }
 

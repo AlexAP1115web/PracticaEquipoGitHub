@@ -1,7 +1,7 @@
 <?php
 
 /* =====================================================
-   API: MAPA CORPORAL DE MOLESTIAS
+   API: SOMAMAP (MAPA INTERACTIVO DE SÍNTOMAS)
    GET  ?paciente_id=N           registros del paciente con sus molestias
    POST ?accion=guardar (X-CSRF-Token)
         { id_cliente, paciente_id, comentario, sin_molestias, molestias: [{ zona, sensacion, intensidad, desde, detalle }] }

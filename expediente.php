@@ -8,6 +8,7 @@ require_once __DIR__ . "/integrations/Alergias.php";
 require_once __DIR__ . "/integrations/NotasConsulta.php";
 require_once __DIR__ . "/integrations/MapaCorporal.php";
 require_once __DIR__ . "/integrations/WebPush.php";
+require_once __DIR__ . "/integrations/Preconsulta.php";
 
 verificarSesion();
 prepararEsquemaInnovacion($conexion);
@@ -323,6 +324,13 @@ $enfermedadesCatalogo = $resultadoEnfermedades ? $resultadoEnfermedades->fetch_a
 $resumenMapa = resumenMapa(mapaRegistros($conexion, $paciente_id));
 
 /* ======================================================
+   PRE-CONSULTA POR QR (la más reciente del paciente)
+====================================================== */
+
+$preconsulta = preconsultaUltima($conexion, $paciente_id, $paciente['alergias'] ?? '');
+$preEstado = $preconsulta['estado_actual'] ?? null;
+
+/* ======================================================
    NOTAS DE CONSULTA (dictadas o escritas, formato SOAP)
 ====================================================== */
 
@@ -595,12 +603,133 @@ $titulosSOAP = [
             </section>
 
             <!-- ==================================================
-                 MAPA CORPORAL: el paciente marca dónde siente molestias
+                 PRE-CONSULTA POR QR: el paciente contesta desde su celular antes de la cita
+            ================================================== -->
+            <section class="card mapa-tarjeta" id="preconsulta" data-html2canvas-ignore="true">
+                <h3 class="section-title">
+                    <i class="fas fa-qrcode" aria-hidden="true"></i>
+                    Pre-consulta por QR
+                </h3>
+
+                <div class="pre-resumen">
+                    <div class="pre-resumen-texto">
+                        <?php if ($preEstado === 'respondida'): ?>
+                            <span class="pre-etiqueta">
+                                <i class="fas fa-circle-check" aria-hidden="true"></i>
+                                Respondida el <?= date('d/m/Y \a \l\a\s H:i', strtotime($preconsulta['respondida_en'])) ?>
+                            </span>
+
+                            <?php foreach (array_slice($preconsulta['alertas'], 0, 2) as $alerta): ?>
+                                <p class="pre-alerta">
+                                    <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+                                    <span>
+                                        Dice tomar <strong><?= e($alerta['medicamento']) ?></strong> y tiene alergia a
+                                        <strong><?= e($alerta['alergia']) ?></strong>. <?= e($alerta['motivo']) ?>
+                                    </span>
+                                </p>
+                            <?php endforeach; ?>
+
+                            <p class="pre-resumen-ia"><?= e($preconsulta['resumen']) ?></p>
+                            <p>
+                                <?= $preconsulta['resumen_fuente'] === 'ia'
+                                    ? 'Resumen hecho con IA a partir de sus respuestas. Confírmalo con el paciente.'
+                                    : 'Resumen armado con sus respuestas.' ?>
+                            </p>
+
+                            <?php if ($preconsulta['respuestas']): ?>
+                                <?php $r = $preconsulta['respuestas']; $inicios = preconsultaOpcionesInicio(); ?>
+                                <details class="pre-detalle">
+                                    <summary>Ver sus respuestas completas</summary>
+                                    <dl class="pre-respuestas">
+                                        <dt>Motivo</dt>
+                                        <dd><?= e($r['motivo']) ?></dd>
+                                        <dt>Desde cuándo</dt>
+                                        <dd><?= e($inicios[$r['inicio']] ?? $r['inicio']) ?></dd>
+                                        <dt>Medicamentos</dt>
+                                        <dd><?= $r['medicamentos'] !== '' ? e($r['medicamentos']) : 'No mencionó' ?></dd>
+                                        <dt>Alergias</dt>
+                                        <dd><?= $r['alergias'] !== '' ? e($r['alergias']) : 'No mencionó' ?></dd>
+                                        <?php if ($r['pregunta'] !== ''): ?>
+                                            <dt>Su pregunta</dt>
+                                            <dd><?= e($r['pregunta']) ?></dd>
+                                        <?php endif; ?>
+                                    </dl>
+                                </details>
+                            <?php endif; ?>
+
+                        <?php elseif ($preEstado === 'valida'): ?>
+                            <span class="pre-etiqueta pendiente">
+                                <i class="fas fa-hourglass-half" aria-hidden="true"></i>
+                                Esperando al paciente
+                            </span>
+                            <p>
+                                El enlace vence el <?= e(fechaCitaEnTexto($preconsulta['expira_en'])) ?> a las <?= date('H:i', strtotime($preconsulta['expira_en'])) ?>.
+                                Cuando lo conteste verás aquí el resumen y te llegará una notificación.
+                            </p>
+                        <?php else: ?>
+                            <p>
+                                El paciente escanea un QR con su celular y, sin crear cuenta, contesta por qué viene,
+                                desde cuándo, qué medicamentos toma y marca en SomaMap dónde siente algo.
+                                Antes de la cita te llega aquí un resumen.
+                            </p>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="pre-resumen-acciones">
+                        <button type="button" class="btn-primary" data-preconsulta="generar" data-paciente="<?= (int) $paciente_id ?>" data-estado="<?= e($preEstado ?? 'ninguna') ?>" data-csrf="<?= e(generarTokenCSRF()) ?>">
+                            <i class="fas fa-qrcode" aria-hidden="true"></i>
+                            <?= $preEstado === 'valida' ? 'Mostrar QR' : ($preEstado === 'respondida' ? 'Nueva pre-consulta' : 'Generar QR') ?>
+                        </button>
+                        <?php if ($preEstado === 'respondida' && !empty($preconsulta['registro_mapa_id'])): ?>
+                            <a href="mapa_corporal.php?id=<?= (int) $paciente_id ?>" class="btn-refresh">
+                                <i class="fas fa-person" aria-hidden="true"></i>
+                                Ver en SomaMap
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </section>
+
+            <dialog class="pre-dialogo" id="preDialogo" aria-labelledby="preDialogoTitulo" data-html2canvas-ignore="true">
+                <div class="pre-dialogo-cuerpo">
+                    <div class="pre-dialogo-cab">
+                        <div>
+                            <h3 id="preDialogoTitulo">Pre-consulta de <?= e(explode(' ', trim($paciente['nombre']))[0]) ?></h3>
+                            <p>Pídele que lo escanee con la cámara de su celular, o mándale el enlace.</p>
+                        </div>
+                        <button type="button" class="mapa-hoja-cerrar" data-preconsulta="cerrar" aria-label="Cerrar">
+                            <i class="fas fa-xmark" aria-hidden="true"></i>
+                        </button>
+                    </div>
+
+                    <div class="pre-qr" id="preQR" role="img" aria-label="Código QR de la pre-consulta">
+                        <span class="pre-qr-cargando">Generando…</span>
+                    </div>
+                    <code class="pre-enlace" id="preEnlace"></code>
+                    <p class="pre-vence" id="preVence"></p>
+                    <p class="mapa-error" id="preDialogoError" role="alert" hidden></p>
+
+                    <div class="pre-dialogo-acciones">
+                        <button type="button" class="btn-refresh" data-preconsulta="copiar">
+                            <i class="fas fa-copy" aria-hidden="true"></i>
+                            <span>Copiar enlace</span>
+                        </button>
+                        <a class="btn-primary" id="preWhatsapp" href="#" target="_blank" rel="noopener">
+                            <i class="fab fa-whatsapp" aria-hidden="true"></i>
+                            WhatsApp
+                        </a>
+                    </div>
+                </div>
+            </dialog>
+
+            <!-- ==================================================
+                 SOMAMAP: mapa interactivo de síntomas; el paciente marca dónde siente algo
             ================================================== -->
             <section class="card mapa-tarjeta" data-html2canvas-ignore="true">
                 <h3 class="section-title">
                     <i class="fas fa-person" aria-hidden="true"></i>
-                    Mapa de molestias
+                    SomaMap
+                    <span class="mapa-marca-sub">Mapa interactivo de síntomas</span>
                 </h3>
 
                 <div class="mapa-resumen">
@@ -608,7 +737,7 @@ $titulosSOAP = [
                         <?php if ($resumenMapa): ?>
                             <p>
                                 Último registro: <strong><?= date('d/m/Y H:i', strtotime($resumenMapa['fecha'])) ?></strong>.
-                                <?= $resumenMapa['zonas'] === 0 ? 'Sin molestias.' : ($resumenMapa['zonas'] === 1 ? '1 zona marcada.' : $resumenMapa['zonas'] . ' zonas marcadas.') ?>
+                                <?= $resumenMapa['zonas'] === 0 ? 'Sin síntomas.' : ($resumenMapa['zonas'] === 1 ? '1 zona marcada.' : $resumenMapa['zonas'] . ' zonas marcadas.') ?>
                                 <?= $resumenMapa['total'] === 1 ? '1 registro en total.' : $resumenMapa['total'] . ' registros en total.' ?>
                             </p>
                             <?php if ($resumenMapa['principales']): ?>
@@ -626,7 +755,7 @@ $titulosSOAP = [
                             <?php endif; ?>
                         <?php else: ?>
                             <p>
-                                El paciente toca en una silueta dónde siente molestias y dice qué siente, desde cuándo y qué tan fuerte.
+                                El paciente toca en una silueta dónde siente algún síntoma y dice qué siente, desde cuándo y qué tan fuerte.
                                 Todavía no hay registros.
                             </p>
                         <?php endif; ?>
@@ -1008,6 +1137,9 @@ $titulosSOAP = [
                 .save();
         }
     </script>
+
+    <script src="assets/js/qrcode.js?v=1" defer></script>
+    <script src="assets/js/preconsulta-qr.js?v=1" defer></script>
 
 </body>
 

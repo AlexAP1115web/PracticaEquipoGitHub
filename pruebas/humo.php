@@ -107,6 +107,9 @@ foreach (['home.php', 'login.php', 'aviso_privacidad.php', 'offline.html', 'mani
     paginaBien('Públicas', $ruta);
 }
 
+// Pre-consulta: un enlace que no existe muestra un aviso amable (404), sin errores de PHP
+paginaBien('Públicas', 'preconsulta.php?t=' . str_repeat('0', 48), 404);
+
 $salud = pedir('salud.php');
 $json = json_decode($salud['cuerpo'], true);
 revisar('Públicas', 'salud.php (estado y base de datos)', $salud['codigo'] === 200 && ($json['estado'] ?? '') === 'ok' && ($json['base_de_datos'] ?? '') === 'ok', $salud);
@@ -119,6 +122,9 @@ foreach (['index.php', 'pacientes.php', 'expediente.php?id=1', 'reportes.php'] a
 
 $r = pedir('api/mapa_corporal.php?paciente_id=1');
 revisar('Sin sesión', 'api/mapa_corporal.php responde 401', $r['codigo'] === 401, $r);
+
+$r = pedir('api/preconsulta.php?accion=crear', ['post' => '{"paciente_id":1}', 'cabeceras' => ['Content-Type: application/json']]);
+revisar('Sin sesión', 'Generar pre-consulta responde 401', $r['codigo'] === 401, $r);
 
 /* 3. Inicio de sesión */
 $login = pedir('login.php');
@@ -151,7 +157,7 @@ revisar('Módulos', 'reporte_pdf.php genera un PDF', $pdf['codigo'] === 200 && s
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 $bd = new mysqli(getenv('DB_HOST'), getenv('DB_USER'), getenv('DB_PASS'), getenv('DB_NAME'), (int) getenv('DB_PORT'));
 
-foreach (['chatbot_consultas', 'push_suscripciones', 'push_mensajes', 'push_recordatorios', 'notas_consulta', 'mapa_registros', 'mapa_molestias'] as $tabla) {
+foreach (['chatbot_consultas', 'push_suscripciones', 'push_mensajes', 'push_recordatorios', 'notas_consulta', 'mapa_registros', 'mapa_molestias', 'preconsultas'] as $tabla) {
     $existe = $bd->query("SHOW TABLES LIKE '$tabla'")->num_rows === 1;
     revisar('Esquema', "Tabla $tabla", $existe);
 }
@@ -180,6 +186,36 @@ revisar('APIs', 'Rechaza peticiones sin token CSRF', $r['codigo'] === 403, $r);
 
 $r = pedir('api/mapa_corporal.php?accion=guardar', ['post' => json_encode(['id_cliente' => 'x', 'paciente_id' => 1]), 'cabeceras' => ['Content-Type: application/json', 'X-CSRF-Token: ' . $csrf]]);
 revisar('APIs', 'Rechaza datos inválidos', $r['codigo'] === 422, $r);
+
+/* Pre-consulta por QR: el médico genera el enlace y el paciente lo contesta sin cuenta */
+$r = pedir('api/preconsulta.php?accion=crear', ['post' => '{"paciente_id":1}', 'cabeceras' => ['Content-Type: application/json', 'X-CSRF-Token: ' . $csrf]]);
+$pre = json_decode($r['cuerpo'], true);
+revisar('APIs', 'Generar enlace de pre-consulta', $r['codigo'] === 200 && !empty($pre['ok']) && preg_match('/^preconsulta\.php\?t=[a-f0-9]{48}$/', $pre['ruta'] ?? ''), $r);
+
+$ruta = $pre['ruta'] ?? 'preconsulta.php?t=x';
+$pagina = pedir($ruta);
+revisar('APIs', 'Página de pre-consulta del paciente', $pagina['codigo'] === 200 && strpos($pagina['cuerpo'], 'id="preForm"') !== false && sinErrores($pagina) === '', $pagina, sinErrores($pagina));
+
+preg_match('/<script type="application\/json" id="mapaDatos">(.*?)<\/script>/s', $pagina['cuerpo'], $m);
+$datosPre = json_decode($m[1] ?? '', true);
+$respuesta = json_encode([
+    'token'      => $datosPre['token'] ?? '',
+    'id_cliente' => sprintf('%08x-%04x-4%03x-a%03x-%012x', random_int(0, 0xffffffff), random_int(0, 0xffff), random_int(0, 0xfff), random_int(0, 0xfff), random_int(0, 0xffffffffffff)),
+    'respuestas' => ['motivo' => 'Dolor de garganta y fiebre', 'inicio' => 'dias', 'medicamentos' => 'Amoxicilina 500 mg', 'alergias' => 'Penicilina', 'pregunta' => ''],
+    'molestias'  => [['zona' => 'cuello', 'sensacion' => 'ardor', 'intensidad' => 5, 'desde' => date('Y-m-d', strtotime('-2 days'))]]
+]);
+
+$r = pedir('api/preconsulta.php?accion=responder', ['post' => $respuesta, 'cabeceras' => ['Content-Type: application/json', 'X-CSRF-Token: ' . ($datosPre['csrf'] ?? '')]]);
+$res = json_decode($r['cuerpo'], true);
+revisar('APIs', 'El paciente envía su pre-consulta', $r['codigo'] === 200 && !empty($res['ok']), $r);
+
+$r = pedir('api/preconsulta.php?accion=responder', ['post' => $respuesta, 'cabeceras' => ['Content-Type: application/json', 'X-CSRF-Token: ' . ($datosPre['csrf'] ?? '')]]);
+revisar('APIs', 'El enlace de pre-consulta solo sirve una vez', $r['codigo'] === 410, $r);
+
+$r = paginaBien('APIs', $ruta, 410);
+
+$exp = pedir('expediente.php?id=1');
+revisar('APIs', 'Resumen y alerta de alergia en el expediente', strpos($exp['cuerpo'], 'pre-resumen-ia') !== false && strpos($exp['cuerpo'], 'pre-alerta') !== false, $exp);
 
 $r = pedir('api/notas.php?accion=guardar');
 revisar('APIs', 'api/notas.php solo acepta POST', $r['codigo'] === 405, $r);

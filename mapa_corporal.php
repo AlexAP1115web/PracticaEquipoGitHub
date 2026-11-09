@@ -4,8 +4,10 @@ include("security.php");
 require_once __DIR__ . "/config/esquema.php";
 require_once __DIR__ . "/integrations/MapaCorporal.php";
 
+define('MEDICORE_SOMAMAP', true);
+
 /* ======================================================
-   MAPA CORPORAL DE MOLESTIAS
+   SOMAMAP: MAPA INTERACTIVO DE SÍNTOMAS
    - Evolución (médico): reproduce los registros del paciente para ver cómo cambiaron
      sus molestias de una consulta a otra.
    - Modo paciente (?modo=paciente): el médico le pasa el dispositivo al paciente,
@@ -45,7 +47,7 @@ $datosMapa = [
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa de molestias | <?= htmlspecialchars($paciente['nombre']) ?></title>
+    <title>SomaMap | <?= htmlspecialchars($paciente['nombre']) ?></title>
 
     <link rel="stylesheet" href="assets/style.css?v=<?= time() ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -77,18 +79,19 @@ $datosMapa = [
             <header class="mapa-cab">
                 <h2>
                     <i class="fas fa-person" aria-hidden="true"></i>
-                    Mapa de molestias
+                    SomaMap
+                    <span class="mapa-marca-sub">Mapa interactivo de síntomas</span>
                 </h2>
                 <p>
                     <strong><?= htmlspecialchars($paciente['nombre']) ?></strong>.
-                    Lo que marcó el paciente en cada consulta. Reproduce los registros para ver cómo cambiaron sus molestias.
+                    Lo que marcó el paciente en cada consulta. Reproduce los registros para ver cómo cambiaron sus síntomas.
                 </p>
             </header>
 
             <section class="card mapa-vacio" id="mapaVacio" hidden>
                 <i class="fas fa-hand-pointer" aria-hidden="true"></i>
                 <h3>Todavía no hay registros</h3>
-                <p>Pásale el dispositivo al paciente para que toque en la silueta dónde siente molestias.</p>
+                <p>Pásale el dispositivo al paciente para que toque en la silueta dónde siente algún síntoma.</p>
                 <button type="button" class="btn-primary" data-accion="nuevo-registro">
                     Empezar el primer registro
                 </button>
@@ -105,7 +108,7 @@ $datosMapa = [
                         <h4 class="mapa-subtitulo">Cambios desde el registro anterior</h4>
                         <ul class="mapa-cambios" id="evoCambios"></ul>
 
-                        <h4 class="mapa-subtitulo">Molestias en este registro</h4>
+                        <h4 class="mapa-subtitulo">Síntomas en este registro</h4>
                         <ul class="mapa-lista" id="evoLista"></ul>
 
                         <blockquote class="mapa-comentario" id="evoComentario" hidden></blockquote>
@@ -148,7 +151,7 @@ $datosMapa = [
             <header class="mapa-paciente-cab">
                 <div>
                     <p class="mapa-saludo">Hola, <?= htmlspecialchars($primerNombre) ?></p>
-                    <h2>¿Dónde sientes molestia?</h2>
+                    <h2>¿Dónde sientes algún síntoma?</h2>
                     <p class="mapa-instruccion">Toca la parte del cuerpo. Puedes marcar varias.</p>
                 </div>
                 <button type="button" class="btn-salir-paciente" data-accion="salir-paciente">
@@ -189,7 +192,7 @@ $datosMapa = [
                             Terminar y guardar
                         </button>
                         <button type="button" class="btn-sin-molestias" id="btnSinMolestias">
-                            No tengo molestias
+                            No tengo síntomas
                         </button>
                     </div>
                 </aside>
@@ -198,7 +201,7 @@ $datosMapa = [
             <section class="mapa-listo" id="registroListo" hidden tabindex="-1">
                 <i class="fas fa-circle-check" aria-hidden="true"></i>
                 <h2>¡Listo, gracias!</h2>
-                <p>Tus molestias quedaron guardadas. Devuelve el dispositivo al médico.</p>
+                <p>Tus síntomas quedaron guardados. Devuelve el dispositivo al médico.</p>
                 <button type="button" class="btn-primary btn-grande" data-accion="ver-evolucion">
                     <i class="fas fa-user-doctor" aria-hidden="true"></i>
                     Ver la evolución (médico)
@@ -206,62 +209,12 @@ $datosMapa = [
             </section>
         </div>
 
-        <!-- Hoja para describir la molestia de una zona -->
-        <dialog class="mapa-hoja" id="mapaHoja" aria-labelledby="hojaTitulo">
-            <form method="dialog" id="hojaForm" novalidate>
-                <header class="mapa-hoja-cab">
-                    <h3 id="hojaTitulo">Zona</h3>
-                    <button type="button" class="mapa-hoja-cerrar" data-accion="cerrar-hoja" aria-label="Cerrar">
-                        <i class="fas fa-xmark" aria-hidden="true"></i>
-                    </button>
-                </header>
-
-                <fieldset class="mapa-campo">
-                    <legend>¿Qué sientes?</legend>
-                    <div class="mapa-chips" id="hojaSensaciones"></div>
-                </fieldset>
-
-                <fieldset class="mapa-campo">
-                    <legend>¿Desde cuándo?</legend>
-                    <div class="mapa-chips" id="hojaDesde">
-                        <label><input type="radio" name="desde" value="0"><span>Hoy</span></label>
-                        <label><input type="radio" name="desde" value="1"><span>Ayer</span></label>
-                        <label><input type="radio" name="desde" value="3"><span>Hace unos días</span></label>
-                        <label><input type="radio" name="desde" value="7"><span>Hace una semana</span></label>
-                        <label><input type="radio" name="desde" value="30"><span>Hace un mes</span></label>
-                        <label><input type="radio" name="desde" value="fecha"><span>Otra fecha</span></label>
-                    </div>
-                    <label class="mapa-fecha" id="hojaFechaCampo" hidden>
-                        <span class="sr-only">Fecha en que empezó</span>
-                        <input type="date" id="hojaFecha">
-                    </label>
-                </fieldset>
-
-                <fieldset class="mapa-campo">
-                    <legend>¿Qué tan fuerte es? <small>1 es muy leve y 10 es lo más fuerte</small></legend>
-                    <div class="mapa-intensidad" id="hojaIntensidad"></div>
-                    <div class="mapa-intensidad-guia" aria-hidden="true">
-                        <span>Leve</span><span>Moderada</span><span>Muy fuerte</span>
-                    </div>
-                </fieldset>
-
-                <label class="mapa-campo mapa-detalle-campo">
-                    <span>¿Algo más? <small>(opcional)</small></span>
-                    <input type="text" id="hojaDetalle" maxlength="200" placeholder="Ej. Empeora al caminar">
-                </label>
-
-                <footer class="mapa-hoja-acciones">
-                    <p class="mapa-error" id="hojaError" role="alert" hidden></p>
-                    <button type="submit" class="btn-primary btn-grande" id="hojaGuardar">Guardar en el mapa</button>
-                    <button type="button" class="btn-quitar" id="hojaQuitar" hidden>Quitar del mapa</button>
-                </footer>
-            </form>
-        </dialog>
+        <?php include __DIR__ . "/componentes/somamap_hoja.php"; ?>
 
     </div>
 
     <script type="application/json" id="mapaDatos"><?= json_encode($datosMapa, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
-    <script src="assets/js/mapa-corporal.js?v=1" defer></script>
+    <script src="assets/js/mapa-corporal.js?v=2" defer></script>
 
 </body>
 

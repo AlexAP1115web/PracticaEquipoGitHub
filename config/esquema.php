@@ -3,10 +3,10 @@
 /* =====================================================
    MEDICORE PROFESSIONAL SYSTEM
    ACTUALIZACIÓN AUTOMÁTICA DEL ESQUEMA
-   Tablas de alergias, chatbot, push, notas y mapa corporal, y llaves con ON DELETE CASCADE para que
+   Tablas de alergias, chatbot, push, notas, SomaMap y pre-consulta, y llaves con ON DELETE CASCADE para que
    al borrar un paciente se borre todo lo suyo. Corre una vez y deja una marca
    (el mismo SQL está en database/migracion_innovacion.sql, database/migracion_cascada.sql
-   y database/migracion_mapa_corporal.sql)
+   database/migracion_mapa_corporal.sql y database/migracion_preconsulta.sql)
 ===================================================== */
 
 if (!function_exists('asegurarBorradoEnCascada')) {
@@ -57,9 +57,10 @@ if (!function_exists('prepararEsquemaInnovacion')) {
         // Marca en logs/, o en sessions_data/ si en Railway no deja escribir
         // v3 = notas_consulta y borrado en cascada de todo lo del paciente
         // v4 = mapa corporal de molestias y tres avisos por cita (semana, mañana y hoy)
+        // v5 = pre-consulta por QR (el paciente responde desde su celular antes de la cita)
         $marcas = [
-            __DIR__ . '/../logs/.esquema_innovacion_v4',
-            __DIR__ . '/../sessions_data/.esquema_innovacion_v4'
+            __DIR__ . '/../logs/.esquema_innovacion_v5',
+            __DIR__ . '/../sessions_data/.esquema_innovacion_v5'
         ];
 
         foreach ($marcas as $marca) {
@@ -200,13 +201,38 @@ if (!function_exists('prepararEsquemaInnovacion')) {
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             ");
 
+            // Pre-consulta por QR: el médico genera un enlace de un solo uso y el paciente lo responde
+            // desde su celular sin cuenta. respuestas guarda el cuestionario en JSON y
+            // registro_mapa_id lo que marcó en SomaMap
+            $conexion->query("
+                CREATE TABLE IF NOT EXISTS preconsultas (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    token CHAR(48) NOT NULL UNIQUE,
+                    paciente_id INT NOT NULL,
+                    medico_id INT NOT NULL,
+                    estado VARCHAR(12) NOT NULL DEFAULT 'pendiente',
+                    respuestas TEXT NULL,
+                    registro_mapa_id INT NULL,
+                    resumen TEXT NULL,
+                    resumen_fuente VARCHAR(10) NULL,
+                    creado_en DATETIME NOT NULL,
+                    expira_en DATETIME NOT NULL,
+                    respondida_en DATETIME NULL,
+                    INDEX idx_preconsulta_paciente (paciente_id, creado_en),
+                    CONSTRAINT fk_preconsultas_paciente
+                        FOREIGN KEY (paciente_id) REFERENCES usuarios(id)
+                        ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            ");
+
             // Al borrar un paciente (desde la app o desde phpMyAdmin) se borra todo lo suyo
             $cascadas = [
                 ['expedientes', 'usuario_id', 'usuarios', 'fk_expedientes_usuario'],
                 ['notas_consulta', 'paciente_id', 'usuarios', 'fk_notas_consulta_paciente'],
                 ['chatbot_consultas', 'paciente_id', 'usuarios', 'fk_chatbot_paciente'],
                 ['push_recordatorios', 'expediente_id', 'expedientes', 'fk_recordatorio_expediente'],
-                ['mapa_registros', 'paciente_id', 'usuarios', 'fk_mapa_registros_paciente']
+                ['mapa_registros', 'paciente_id', 'usuarios', 'fk_mapa_registros_paciente'],
+                ['preconsultas', 'paciente_id', 'usuarios', 'fk_preconsultas_paciente']
             ];
 
             foreach ($cascadas as $c) {
@@ -227,7 +253,7 @@ if (!function_exists('prepararEsquemaInnovacion')) {
             $listo = true;
 
             if (function_exists('registrarLog')) {
-                registrarLog("Esquema de módulos nuevos verificado (alergias, chatbot, push, notas de consulta, mapa corporal y borrado en cascada).", "INFO");
+                registrarLog("Esquema de módulos nuevos verificado (alergias, chatbot, push, notas de consulta, SomaMap, pre-consulta y borrado en cascada).", "INFO");
             }
         } catch (Exception $e) {
             if (function_exists('registrarLog')) {

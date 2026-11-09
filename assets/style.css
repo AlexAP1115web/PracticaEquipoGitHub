@@ -2210,7 +2210,7 @@ form.toolbar .btn-success:last-child{
 }
 
 /* =====================================================
-   MAPA CORPORAL DE MOLESTIAS (mapa_corporal.php)
+   SOMAMAP: MAPA INTERACTIVO DE SÍNTOMAS (mapa_corporal.php)
    Silueta en SVG, colores por intensidad (1 a 10 en 5 niveles)
 ===================================================== */
 
@@ -2240,6 +2240,20 @@ form.toolbar .btn-success:last-child{
 
 .mapa-cab h2 i{
     color:var(--verde);
+}
+
+/* Nombre del módulo: "SomaMap" y debajo/al lado lo que hace */
+.mapa-marca-sub{
+    font-size:14px;
+    font-weight:500;
+    color:var(--gris);
+    letter-spacing:0;
+}
+
+.mapa-cab h2{
+    flex-wrap:wrap;
+    column-gap:10px;
+    row-gap:2px;
 }
 
 .mapa-cab p{
@@ -3313,4 +3327,534 @@ body.modo-paciente .content{
 @keyframes mapa-hoja-sube{
     from{ transform:translateY(24px); opacity:.6; }
     to{ transform:none; opacity:1; }
+}
+
+/* =====================================================
+   PRE-CONSULTA POR QR (preconsulta.php y tarjeta del expediente)
+===================================================== */
+
+body.pagina-preconsulta .content.preconsulta{
+    max-width:1180px;
+    margin:0 auto;
+    padding:20px 16px 40px;
+    min-height:100dvh;
+}
+
+.pre-marca{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:18px;
+}
+
+.pre-marca img{
+    border-radius:10px;
+    flex-shrink:0;
+}
+
+.pre-marca div{
+    display:flex;
+    flex-direction:column;
+    line-height:1.2;
+    min-width:0;
+}
+
+.pre-marca strong{
+    color:var(--pino);
+    font-size:17px;
+}
+
+.pre-marca span{
+    color:var(--gris);
+    font-size:13px;
+}
+
+.pre-pasos{
+    display:flex;
+    gap:6px;
+    list-style:none;
+    margin:0 0 16px;
+    padding:0;
+    counter-reset:none;
+}
+
+.pre-pasos li{
+    flex:1 1 0;
+    min-width:0;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    padding:8px 10px;
+    border-radius:var(--radio-control);
+    background:var(--papel);
+    color:var(--gris);
+    font-size:13px;
+    font-weight:600;
+    line-height:1.25;
+}
+
+.pre-pasos li span{
+    display:inline-grid;
+    place-items:center;
+    flex-shrink:0;
+    width:22px;
+    height:22px;
+    border-radius:50%;
+    background:var(--hoja);
+    border:1px solid var(--linea);
+    font-size:12px;
+}
+
+.pre-pasos li[aria-current="step"]{
+    background:var(--menta);
+    color:var(--pino);
+}
+
+.pre-pasos li[aria-current="step"] span,
+.pre-pasos li.hecho span{
+    background:var(--verde);
+    border-color:var(--verde);
+    color:#fff;
+}
+
+.pre-tarjeta,
+.pre-aviso{
+    max-width:640px;
+    margin:0 auto;
+    padding:22px 20px;
+    background:var(--hoja);
+    border:1px solid var(--linea);
+    border-radius:var(--radio-hoja);
+}
+
+.pre-titulo{
+    font-size:26px;
+    line-height:1.2;
+    color:var(--pino);
+    margin:0 0 8px;
+}
+
+.pre-intro{
+    color:var(--gris);
+    font-size:15px;
+    line-height:1.5;
+    margin:0 0 14px;
+}
+
+.pre-intro strong{
+    color:var(--tinta);
+}
+
+.pre-cita{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    margin:0 0 18px;
+    padding:10px 12px;
+    border-radius:var(--radio-control);
+    background:var(--info-fondo);
+    color:var(--info);
+    font-size:14px;
+    line-height:1.4;
+}
+
+.pre-cita i{
+    margin-top:2px;
+}
+
+.pre-campo{
+    display:block;
+    margin:0 0 4px;
+}
+
+label.pre-campo > span{
+    display:block;
+    margin-bottom:6px;
+    font-size:15px;
+    font-weight:700;
+    color:var(--tinta);
+    line-height:1.35;
+}
+
+.pre-campo small{
+    font-weight:400;
+    color:var(--gris);
+}
+
+.pre-campo input,
+.pre-campo textarea{
+    font-size:16px;
+}
+
+fieldset.pre-campo{
+    padding-top:4px;
+    margin-bottom:16px;
+}
+
+.pre-tarjeta .btn-grande{
+    margin-top:6px;
+    gap:8px;
+}
+
+.pre-privacidad{
+    margin:16px 0 0;
+    color:var(--gris);
+    font-size:13px;
+    line-height:1.5;
+}
+
+.pre-privacidad a{
+    color:var(--verde-oscuro);
+    font-weight:600;
+    white-space:nowrap;
+}
+
+.pre-aviso{
+    text-align:center;
+    margin-top:24px;
+    padding:36px 22px;
+}
+
+.pre-aviso > i{
+    font-size:44px;
+    color:var(--gris-claro);
+    margin-bottom:14px;
+}
+
+.pre-aviso[data-estado="respondida"] > i{
+    color:var(--verde);
+}
+
+.pre-aviso h1{
+    font-size:22px;
+    color:var(--pino);
+    margin:0 0 8px;
+}
+
+.pre-aviso p{
+    color:var(--gris);
+    font-size:15px;
+    line-height:1.5;
+    margin:0 auto;
+    max-width:42ch;
+}
+
+/* ---------- Tarjeta del expediente ---------- */
+
+.pre-resumen{
+    display:grid;
+    grid-template-columns:minmax(0, 1fr) auto;
+    gap:18px;
+    align-items:start;
+}
+
+.pre-resumen-texto{
+    min-width:0;
+}
+
+.pre-resumen-texto > p{
+    color:var(--gris);
+    font-size:14px;
+    line-height:1.5;
+    margin:0 0 10px;
+}
+
+.pre-etiqueta{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:3px 10px;
+    border-radius:999px;
+    background:var(--menta);
+    color:var(--pino);
+    font-size:12px;
+    font-weight:700;
+    margin-bottom:8px;
+}
+
+.pre-etiqueta.pendiente{
+    background:var(--precaucion-fondo);
+    color:var(--precaucion);
+}
+
+.pre-resumen-ia{
+    margin:0 0 12px;
+    padding:12px 14px;
+    border-left:3px solid var(--verde);
+    border-radius:0 var(--radio-control) var(--radio-control) 0;
+    background:var(--papel);
+    color:var(--tinta);
+    font-size:15px;
+    line-height:1.55;
+    overflow-wrap:anywhere;
+}
+
+.pre-respuestas{
+    display:grid;
+    grid-template-columns:minmax(120px, max-content) minmax(0, 1fr);
+    gap:6px 14px;
+    margin:0 0 6px;
+    font-size:14px;
+}
+
+.pre-respuestas dt{
+    color:var(--gris);
+    font-weight:600;
+}
+
+.pre-respuestas dd{
+    margin:0;
+    color:var(--tinta);
+    overflow-wrap:anywhere;
+}
+
+.pre-alerta{
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    margin:0 0 12px;
+    padding:10px 12px;
+    border-radius:var(--radio-control);
+    background:var(--alerta-fondo);
+    color:var(--alerta);
+    font-size:14px;
+    line-height:1.45;
+}
+
+.pre-alerta i{
+    margin-top:2px;
+}
+
+.pre-resumen-acciones{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    min-width:200px;
+}
+
+.pre-resumen-acciones a,
+.pre-resumen-acciones button{
+    justify-content:center;
+    text-align:center;
+}
+
+/* ---------- Diálogo con el QR ---------- */
+
+.pre-dialogo{
+    margin:auto;
+    width:min(420px, calc(100% - 32px));
+    max-height:calc(100dvh - 32px);
+    padding:0;
+    border:0;
+    border-radius:var(--radio-hoja);
+    background:var(--hoja);
+    color:var(--tinta);
+    box-shadow:0 24px 60px rgba(14,59,44,.28);
+}
+
+.pre-dialogo::backdrop{
+    background:rgba(14,36,29,.45);
+}
+
+.pre-dialogo[open]{
+    animation:pre-dialogo-entra 200ms cubic-bezier(.215,.61,.355,1);
+}
+
+.pre-dialogo-cuerpo{
+    padding:22px 22px 20px;
+    text-align:center;
+}
+
+.pre-dialogo-cab{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
+    text-align:left;
+    margin-bottom:12px;
+}
+
+.pre-dialogo-cab h3{
+    font-size:19px;
+    color:var(--pino);
+    margin:0 0 4px;
+}
+
+.pre-dialogo-cab p{
+    font-size:14px;
+    color:var(--gris);
+    margin:0;
+    line-height:1.45;
+}
+
+.pre-qr{
+    display:grid;
+    place-items:center;
+    width:232px;
+    height:232px;
+    max-width:100%;
+    margin:6px auto 12px;
+    padding:12px;
+    border:1px solid var(--linea);
+    border-radius:var(--radio-hoja);
+    background:#fff;
+}
+
+.pre-qr img,
+.pre-qr canvas{
+    display:block;
+    width:100%;
+    height:auto;
+}
+
+.pre-qr-cargando{
+    color:var(--gris);
+    font-size:14px;
+}
+
+.pre-enlace{
+    display:block;
+    margin:0 0 6px;
+    padding:8px 10px;
+    border-radius:var(--radio-control);
+    background:var(--papel);
+    color:var(--gris);
+    font-family:ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size:12px;
+    word-break:break-all;
+    text-align:left;
+}
+
+.pre-vence{
+    font-size:13px;
+    color:var(--gris);
+    margin:0 0 14px;
+}
+
+.pre-dialogo-acciones{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+}
+
+.pre-dialogo-acciones .btn-primary,
+.pre-dialogo-acciones .btn-refresh{
+    justify-content:center;
+    min-height:44px;
+    width:100%;
+}
+
+@keyframes pre-dialogo-entra{
+    from{ transform:scale(.97); opacity:0; }
+    to{ transform:none; opacity:1; }
+}
+
+@media (prefers-reduced-motion:reduce){
+    .pre-dialogo[open]{
+        animation:none;
+    }
+}
+
+@media (max-width:720px){
+    .pre-resumen{
+        grid-template-columns:minmax(0, 1fr);
+    }
+
+    .pre-resumen-acciones{
+        min-width:0;
+    }
+
+    .pre-respuestas{
+        grid-template-columns:minmax(0, 1fr);
+        gap:2px;
+    }
+
+    .pre-respuestas dd{
+        margin-bottom:8px;
+    }
+}
+
+@media (max-width:420px){
+    .pre-pasos li{
+        flex-direction:column;
+        text-align:center;
+        font-size:12px;
+        padding:8px 4px;
+    }
+
+    .pre-tarjeta{
+        padding:18px 16px;
+    }
+
+    .pre-titulo{
+        font-size:23px;
+    }
+
+    .pre-dialogo-acciones{
+        grid-template-columns:1fr;
+    }
+}
+
+.pre-detalle{
+    margin-top:4px;
+}
+
+.pre-detalle summary{
+    display:inline-flex;
+    align-items:center;
+    min-height:44px;
+    color:var(--verde-oscuro);
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+}
+
+.pre-detalle[open] summary{
+    margin-bottom:6px;
+}
+
+/* Botones grandes con texto largo: que bajen de renglón en vez de salirse */
+.btn-grande,
+.pre-resumen-acciones .btn-primary,
+.pre-resumen-acciones .btn-refresh,
+.pre-dialogo-acciones .btn-primary,
+.pre-dialogo-acciones .btn-refresh{
+    white-space:normal;
+    line-height:1.25;
+    padding-top:10px;
+    padding-bottom:10px;
+    text-align:center;
+}
+
+/* Cifras en celulares angostos (360 px): dos columnas que sí caben */
+@media (max-width:420px){
+    .stats-grid,
+    .stats{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+    }
+
+    .stat-box,
+    .stat-card{
+        padding:16px 14px;
+        gap:8px;
+    }
+
+    .stat-number,
+    .stat-box h2,
+    .stat-card h2{
+        font-size:28px;
+    }
+
+    .stat-icon{
+        width:30px;
+        height:30px;
+        flex:0 0 30px;
+        font-size:13px;
+    }
+
+    .stat-label,
+    .stat-box p,
+    .stat-card p{
+        overflow-wrap:anywhere;
+    }
 }

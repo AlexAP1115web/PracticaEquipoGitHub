@@ -5,7 +5,7 @@
 
 importScripts('assets/js/cola-notas.js');
 
-const VERSION = 'medicore-admin-v10';
+const VERSION = 'medicore-admin-v11';
 
 // Cache de paginas de consulta que llena cache.php (no cambia con la version)
 const CONSULTA = 'medicore-consulta';
