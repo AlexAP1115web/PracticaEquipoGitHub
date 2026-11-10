@@ -6,13 +6,15 @@
    El médico genera un enlace de un solo uso (QR) desde el expediente. El paciente lo abre en
    su celular sin cuenta, contesta unas preguntas y marca en SomaMap dónde siente algo.
    Al médico le llega un resumen (con IA si hay GEMINI_API_KEY, si no uno automático)
-   y una notificación push.
+   y una notificación push. Si el paciente pide que lo lleven a la cita, queda un
+   traslado "solicitado" en su expediente (integrations/Traslados.php).
    Las fechas se comparan en PHP (hora de México); MySQL en Railway está en UTC.
 ===================================================== */
 
 require_once __DIR__ . '/MapaCorporal.php';
 require_once __DIR__ . '/Alergias.php';
 require_once __DIR__ . '/GeminiAI.php';
+require_once __DIR__ . '/Traslados.php';
 
 if (!defined('PRECONSULTA_HORAS')) {
     // Cuánto dura el enlace antes de vencer
@@ -147,6 +149,30 @@ if (!function_exists('preconsultaValidarRespuestas')) {
             return [null, 'Elige desde cuándo te sientes así.'];
         }
 
+        // Traslado a la cita (opcional): "no" o el tipo de viaje con la dirección
+        $traslado = is_array($entrada['traslado'] ?? null) ? $entrada['traslado'] : [];
+        $respuestas['traslado'] = null;
+
+        if (($traslado['tipo'] ?? 'no') !== 'no') {
+            list($datosTraslado, $errorTraslado) = trasladoValidar([
+                'tipo'      => $traslado['tipo'] ?? '',
+                'direccion' => $traslado['direccion'] ?? '',
+                'notas'     => $traslado['notas'] ?? ''
+            ]);
+
+            if ($errorTraslado) {
+                return [null, $traslado['tipo'] && isset(trasladoTipos()[$traslado['tipo']])
+                    ? 'Escribe la dirección donde pasamos por ti (calle, número y colonia).'
+                    : $errorTraslado];
+            }
+
+            $respuestas['traslado'] = [
+                'tipo'      => $datosTraslado['tipo'],
+                'direccion' => $datosTraslado['direccion'],
+                'notas'     => $datosTraslado['notas']
+            ];
+        }
+
         return [$respuestas, null];
     }
 }
@@ -223,6 +249,11 @@ if (!function_exists('preconsultaResumenAutomatico')) {
             $lineas[] = 'Alergias que mencionó: ' . $respuestas['alergias'] . '.';
         }
 
+        if (!empty($respuestas['traslado'])) {
+            $t = $respuestas['traslado'];
+            $lineas[] = 'Pidió traslado (' . mb_strtolower(trasladoTipos()[$t['tipo']]) . ') desde ' . rtrim($t['direccion'], '.') . '.';
+        }
+
         if ($respuestas['pregunta'] !== '') {
             $lineas[] = 'Quiere preguntar: ' . $respuestas['pregunta'];
         }
@@ -248,6 +279,9 @@ if (!function_exists('preconsultaResumenIA')) {
             'alergias_expediente'   => (string) ($pre['alergias'] ?? ''),
             'alergias_mencionadas'  => $respuestas['alergias'],
             'pregunta_del_paciente' => $respuestas['pregunta'],
+            'traslado_solicitado'   => !empty($respuestas['traslado'])
+                ? trasladoTipos()[$respuestas['traslado']['tipo']] . ' desde ' . $respuestas['traslado']['direccion']
+                : 'no',
             'conflictos_detectados' => array_map(function ($a) {
                 return $a['medicamento'] . ' vs alergia a ' . $a['alergia'];
             }, $alertas)
@@ -256,6 +290,7 @@ if (!function_exists('preconsultaResumenIA')) {
         $instruccion = 'Eres el asistente clínico de MediCore. Resume para el médico la pre-consulta que llenó su paciente ' .
             'en español de México, en 3 a 5 frases cortas y en tercera persona. Empieza por lo más importante. ' .
             'Si hay conflictos detectados entre medicamentos y alergias, menciónalos primero. ' .
+            'Si pidió traslado a la cita, dilo en la última frase. ' .
             'No des diagnósticos, no sugieras tratamientos y no inventes datos que no vengan en la información. ' .
             'Texto plano, sin viñetas, sin markdown y sin saludos.';
 
@@ -329,6 +364,15 @@ if (!function_exists('preconsultaGuardar')) {
             return ['ok' => false, 'codigo' => 410, 'mensaje' => 'Esta pre-consulta ya se había enviado.'];
         }
 
+        // Si pidió que lo lleven, queda como traslado "solicitado" en el expediente
+        if (!empty($respuestas['traslado'])) {
+            $sucursales = trasladoSucursales($conexion);
+            trasladoCrear($conexion, (int) $pre['paciente_id'], (int) $pre['medico_id'], $respuestas['traslado'] + [
+                'sucursal_id'   => $sucursales ? (int) $sucursales[0]['id'] : null,
+                'minutos_antes' => 45
+            ], 'paciente');
+        }
+
         return [
             'ok'         => true,
             'respuestas' => $respuestas,
@@ -357,6 +401,10 @@ if (!function_exists('preconsultaCompletar')) {
             $cuerpo = $guardado['alertas']
                 ? "$primerNombre respondió su pre-consulta. Revisa: posible conflicto con sus alergias."
                 : "$primerNombre respondió su pre-consulta. Toca para ver el resumen.";
+
+            if (!empty($guardado['respuestas']['traslado'])) {
+                $cuerpo .= ' Pidió traslado a la cita.';
+            }
 
             try {
                 notificarMedico($conexion, (int) $pre['medico_id'], 'Pre-consulta lista', $cuerpo, 'expediente.php?id=' . (int) $pre['paciente_id'] . '#preconsulta');

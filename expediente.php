@@ -9,6 +9,7 @@ require_once __DIR__ . "/integrations/NotasConsulta.php";
 require_once __DIR__ . "/integrations/MapaCorporal.php";
 require_once __DIR__ . "/integrations/WebPush.php";
 require_once __DIR__ . "/integrations/Preconsulta.php";
+require_once __DIR__ . "/integrations/Traslados.php";
 
 verificarSesion();
 prepararEsquemaInnovacion($conexion);
@@ -329,6 +330,19 @@ $resumenMapa = resumenMapa(mapaRegistros($conexion, $paciente_id));
 
 $preconsulta = preconsultaUltima($conexion, $paciente_id, $paciente['alergias'] ?? '');
 $preEstado = $preconsulta['estado_actual'] ?? null;
+
+/* ======================================================
+   TRASLADO A LA CITA PRESENCIAL (el que sigue pendiente)
+====================================================== */
+
+$traslado = trasladoActivo($conexion, $paciente_id);
+$trasladoHecho = $traslado ? null : trasladoUltimoCompletado($conexion, $paciente_id);
+$sucursales = trasladoSucursales($conexion);
+$trasladoInfo = $traslado
+    ? trasladoDetalle($traslado, $paciente, $expediente['fecha_cita'] ?? null, $expediente['hora_cita'] ?? null, $sucursales)
+    : null;
+$avisoTraslado = $_SESSION['aviso_traslado'] ?? null;
+unset($_SESSION['aviso_traslado']);
 
 /* ======================================================
    NOTAS DE CONSULTA (dictadas o escritas, formato SOAP)
@@ -652,6 +666,10 @@ $titulosSOAP = [
                                         <?php if ($r['pregunta'] !== ''): ?>
                                             <dt>Su pregunta</dt>
                                             <dd><?= e($r['pregunta']) ?></dd>
+                                        <?php endif; ?>
+                                        <?php if (!empty($r['traslado'])): ?>
+                                            <dt>Traslado</dt>
+                                            <dd><?= e(trasladoTipos()[$r['traslado']['tipo']] ?? '') ?> desde <?= e($r['traslado']['direccion']) ?></dd>
                                         <?php endif; ?>
                                     </dl>
                                 </details>
@@ -1026,6 +1044,234 @@ $titulosSOAP = [
 
             </section>
 
+            <!-- ==================================================
+                 TRASLADO A LA CITA PRESENCIAL: el consultorio lleva y trae al paciente
+            ================================================== -->
+            <section class="card mapa-tarjeta" id="traslado" data-html2canvas-ignore="true">
+                <h3 class="section-title">
+                    <i class="fas fa-van-shuttle" aria-hidden="true"></i>
+                    Traslado a la cita
+                    <span class="mapa-marca-sub">Llevamos y traemos al paciente</span>
+                </h3>
+
+                <?php if ($avisoTraslado): ?>
+                    <div class="alerta <?= $avisoTraslado['tipo'] === 'exito' ? 'exito' : 'error' ?>" role="status">
+                        <i class="fas <?= $avisoTraslado['tipo'] === 'exito' ? 'fa-circle-check' : 'fa-circle-exclamation' ?>" aria-hidden="true"></i>
+                        <span><?= e($avisoTraslado['texto']) ?></span>
+                    </div>
+                <?php endif; ?>
+
+                <?php if ($traslado): ?>
+                    <?php
+                    // Cada paso con la hora en que pasó
+                    $pasosTraslado = [
+                        'solicitado' => ['Solicitado', $traslado['creado_en']],
+                        'confirmado' => ['Confirmado', $traslado['confirmado_en']],
+                        'en_camino'  => ['En camino', $traslado['en_camino_en']],
+                        'completado' => ['Completado', $traslado['completado_en']]
+                    ];
+                    $indiceActual = array_search($traslado['estado'], array_keys($pasosTraslado), true);
+                    $siguienteTraslado = trasladoSiguienteEstado($traslado['estado']);
+                    ?>
+                    <ol class="tras-pasos" aria-label="Estado del traslado">
+                        <?php foreach (array_values($pasosTraslado) as $i => $paso): ?>
+                            <li class="<?= $i < $indiceActual ? 'hecho' : '' ?>" <?= $i === $indiceActual ? 'aria-current="step"' : '' ?>>
+                                <span aria-hidden="true"><?= $i < $indiceActual ? '<i class="fas fa-check"></i>' : $i + 1 ?></span>
+                                <div>
+                                    <?= e($paso[0]) ?>
+                                    <?php if ($i <= $indiceActual && !empty($paso[1])): ?>
+                                        <small><?= date('d/m H:i', strtotime($paso[1])) ?></small>
+                                    <?php endif; ?>
+                                </div>
+                            </li>
+                        <?php endforeach; ?>
+                    </ol>
+
+                    <div class="pre-resumen">
+                        <div class="pre-resumen-texto">
+                            <?php if ($traslado['origen'] === 'paciente'): ?>
+                                <span class="pre-etiqueta pendiente">
+                                    <i class="fas fa-mobile-screen" aria-hidden="true"></i>
+                                    Lo pidió el paciente en su pre-consulta
+                                </span>
+                            <?php endif; ?>
+
+                            <dl class="pre-respuestas">
+                                <dt>Viaje</dt>
+                                <dd><?= e($trasladoInfo['tipo']) ?></dd>
+                                <dt>Recoger en</dt>
+                                <dd><?= e($traslado['direccion']) ?></dd>
+                                <?php if ($traslado['tipo'] !== 'vuelta'): ?>
+                                    <dt>Recogida</dt>
+                                    <dd>
+                                        <?php if ($trasladoInfo['recogida']): ?>
+                                            <strong><?= e($trasladoInfo['recogida']) ?></strong>,
+                                            <?= (int) $traslado['minutos_antes'] ?> min antes de la cita del <?= e($trasladoInfo['cita']) ?>
+                                        <?php else: ?>
+                                            Se calcula cuando agendes la fecha y hora de la cita.
+                                        <?php endif; ?>
+                                    </dd>
+                                <?php endif; ?>
+                                <?php if ($traslado['tipo'] !== 'ida'): ?>
+                                    <dt>Regreso</dt>
+                                    <dd><?= $trasladoInfo['regreso'] ? 'Al terminar la consulta, aprox. ' . e($trasladoInfo['regreso']) : 'Al terminar la consulta' ?></dd>
+                                <?php endif; ?>
+                                <dt>Destino</dt>
+                                <dd><?= e($trasladoInfo['destino']) ?></dd>
+                                <?php if (!empty($traslado['chofer_nombre'])): ?>
+                                    <dt>Chofer</dt>
+                                    <dd><?= e($traslado['chofer_nombre']) ?>, tel. <?= e($traslado['chofer_telefono']) ?></dd>
+                                    <?php if (!empty($traslado['vehiculo'])): ?>
+                                        <dt>Vehículo</dt>
+                                        <dd><?= e($traslado['vehiculo']) ?></dd>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                                <?php if (!empty($traslado['notas'])): ?>
+                                    <dt>Notas</dt>
+                                    <dd><?= e($traslado['notas']) ?></dd>
+                                <?php endif; ?>
+                            </dl>
+                        </div>
+
+                        <div class="pre-resumen-acciones">
+                            <?php if ($siguienteTraslado && $traslado['estado'] !== 'solicitado'): ?>
+                                <form method="POST" action="traslado.php">
+                                    <input type="hidden" name="csrf_token" value="<?= e(generarTokenCSRF()) ?>">
+                                    <input type="hidden" name="paciente_id" value="<?= (int) $paciente_id ?>">
+                                    <input type="hidden" name="traslado_id" value="<?= (int) $traslado['id'] ?>">
+                                    <input type="hidden" name="accion" value="estado">
+                                    <input type="hidden" name="estado" value="<?= e($siguienteTraslado[0]) ?>">
+                                    <button type="submit" class="btn-primary">
+                                        <i class="fas <?= e($siguienteTraslado[2]) ?>" aria-hidden="true"></i>
+                                        <?= e($siguienteTraslado[1]) ?>
+                                    </button>
+                                </form>
+                            <?php endif; ?>
+                            <a href="<?= e($trasladoInfo['maps']) ?>" class="btn-refresh" target="_blank" rel="noopener">
+                                <i class="fas fa-route" aria-hidden="true"></i>
+                                Ver ruta
+                            </a>
+                            <?php if (!empty($traslado['chofer_nombre'])): ?>
+                                <a href="<?= e($trasladoInfo['whatsapp']) ?>" class="btn-refresh" target="_blank" rel="noopener">
+                                    <i class="fab fa-whatsapp" aria-hidden="true"></i>
+                                    Mandar datos al chofer
+                                </a>
+                                <?php if ($trasladoInfo['whatsapp_paciente']): ?>
+                                    <a href="<?= e($trasladoInfo['whatsapp_paciente']) ?>" class="btn-refresh" target="_blank" rel="noopener">
+                                        <i class="fas fa-comment-medical" aria-hidden="true"></i>
+                                        Avisar al paciente
+                                    </a>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                            <form method="POST" action="traslado.php" data-confirmar="Toca otra vez para cancelar">
+                                <input type="hidden" name="csrf_token" value="<?= e(generarTokenCSRF()) ?>">
+                                <input type="hidden" name="paciente_id" value="<?= (int) $paciente_id ?>">
+                                <input type="hidden" name="traslado_id" value="<?= (int) $traslado['id'] ?>">
+                                <input type="hidden" name="accion" value="cancelar">
+                                <button type="submit" class="tras-cancelar">Cancelar traslado</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <?php if ($traslado['estado'] === 'solicitado'): ?>
+                        <!-- Para confirmar se asigna el chofer: sus datos le llegan al paciente -->
+                        <form method="POST" action="traslado.php" class="tras-chofer">
+                            <input type="hidden" name="csrf_token" value="<?= e(generarTokenCSRF()) ?>">
+                            <input type="hidden" name="paciente_id" value="<?= (int) $paciente_id ?>">
+                            <input type="hidden" name="traslado_id" value="<?= (int) $traslado['id'] ?>">
+                            <input type="hidden" name="accion" value="estado">
+                            <input type="hidden" name="estado" value="confirmado">
+
+                            <h4>
+                                <i class="fas fa-id-card" aria-hidden="true"></i>
+                                Asignar chofer
+                            </h4>
+                            <p>Sus datos le llegan al paciente por correo y al chofer por WhatsApp.</p>
+
+                            <div class="form-grid">
+                                <div>
+                                    <label for="trasChofer">Nombre del chofer</label>
+                                    <input type="text" id="trasChofer" name="chofer_nombre" maxlength="100" required autocomplete="off" placeholder="Ej. Ramón Hernández">
+                                </div>
+                                <div>
+                                    <label for="trasChoferTel">Teléfono (WhatsApp)</label>
+                                    <input type="tel" id="trasChoferTel" name="chofer_telefono" maxlength="20" required inputmode="tel" autocomplete="off" placeholder="10 dígitos">
+                                </div>
+                                <div>
+                                    <label for="trasVehiculo">Vehículo <small>(opcional)</small></label>
+                                    <input type="text" id="trasVehiculo" name="vehiculo" maxlength="80" autocomplete="off" placeholder="Modelo, color y placas">
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn-primary">
+                                <i class="fas fa-circle-check" aria-hidden="true"></i>
+                                Asignar chofer y confirmar
+                            </button>
+                        </form>
+                    <?php endif; ?>
+                <?php else: ?>
+                    <p class="tras-intro">
+                        Para pacientes que no pueden llegar solos a una cita presencial: el consultorio pasa por ellos y los regresa a casa.
+                        También lo pueden pedir desde su pre-consulta por QR.
+                        <?php if ($trasladoHecho): ?>
+                            Último traslado completado el <?= date('d/m/Y', strtotime($trasladoHecho['actualizado_en'])) ?>.
+                        <?php endif; ?>
+                    </p>
+
+                    <form method="POST" action="traslado.php" class="tras-form">
+                        <input type="hidden" name="csrf_token" value="<?= e(generarTokenCSRF()) ?>">
+                        <input type="hidden" name="paciente_id" value="<?= (int) $paciente_id ?>">
+                        <input type="hidden" name="accion" value="crear">
+
+                        <fieldset class="mapa-campo">
+                            <legend>Viaje</legend>
+                            <div class="mapa-chips">
+                                <?php foreach (trasladoTipos() as $clave => $texto): ?>
+                                    <label><input type="radio" name="tipo" value="<?= e($clave) ?>" <?= $clave === 'ida_vuelta' ? 'checked' : '' ?>><span><?= e($texto) ?></span></label>
+                                <?php endforeach; ?>
+                            </div>
+                        </fieldset>
+
+                        <div class="form-grid">
+                            <div>
+                                <label for="trasDireccion">Recoger en</label>
+                                <input type="text" id="trasDireccion" name="direccion" maxlength="255" required
+                                    value="<?= e($paciente['direccion'] ?? '') ?>" placeholder="Calle, número, colonia y referencias">
+                            </div>
+                            <?php if (count($sucursales) > 1): ?>
+                                <div>
+                                    <label for="trasSucursal">Llevar a</label>
+                                    <select id="trasSucursal" name="sucursal_id">
+                                        <?php foreach ($sucursales as $s): ?>
+                                            <option value="<?= (int) $s['id'] ?>"><?= e($s['nombre']) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            <?php elseif ($sucursales): ?>
+                                <input type="hidden" name="sucursal_id" value="<?= (int) $sucursales[0]['id'] ?>">
+                            <?php endif; ?>
+                            <div>
+                                <label for="trasMinutos">Hora de recogida</label>
+                                <select id="trasMinutos" name="minutos_antes">
+                                    <?php foreach (trasladoMinutosOpciones() as $min): ?>
+                                        <option value="<?= $min ?>" <?= $min === 45 ? 'selected' : '' ?>><?= $min ?> min antes de la cita</option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="trasNotas">Notas para el chofer <small>(opcional)</small></label>
+                                <input type="text" id="trasNotas" name="notas" maxlength="200" placeholder="Ej. usa silla de ruedas, va con acompañante">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-van-shuttle" aria-hidden="true"></i>
+                            Programar traslado
+                        </button>
+                    </form>
+                <?php endif; ?>
+            </section>
+
         </main>
 
         <dialog class="dialogo-eliminar" id="dialogoEliminar" aria-labelledby="tituloEliminar">
@@ -1066,6 +1312,30 @@ $titulosSOAP = [
                 this.querySelector('[type=submit]').disabled = true;
             });
         })();
+    </script>
+
+    <script>
+        // Cancelar el traslado pide un segundo toque para no hacerlo por accidente
+        document.querySelectorAll('form[data-confirmar]').forEach(function (form) {
+            const boton = form.querySelector('[type=submit]');
+            const texto = boton.textContent;
+            let temporizador = null;
+
+            form.addEventListener('submit', function (e) {
+                if (form.dataset.listo === '1') {
+                    boton.disabled = true;
+                    return;
+                }
+                e.preventDefault();
+                form.dataset.listo = '1';
+                boton.textContent = form.dataset.confirmar;
+                clearTimeout(temporizador);
+                temporizador = setTimeout(function () {
+                    delete form.dataset.listo;
+                    boton.textContent = texto;
+                }, 4000);
+            });
+        });
     </script>
 
     <script>

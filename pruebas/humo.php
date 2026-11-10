@@ -157,7 +157,7 @@ revisar('Módulos', 'reporte_pdf.php genera un PDF', $pdf['codigo'] === 200 && s
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 $bd = new mysqli(getenv('DB_HOST'), getenv('DB_USER'), getenv('DB_PASS'), getenv('DB_NAME'), (int) getenv('DB_PORT'));
 
-foreach (['chatbot_consultas', 'push_suscripciones', 'push_mensajes', 'push_recordatorios', 'notas_consulta', 'mapa_registros', 'mapa_molestias', 'preconsultas'] as $tabla) {
+foreach (['chatbot_consultas', 'push_suscripciones', 'push_mensajes', 'push_recordatorios', 'notas_consulta', 'mapa_registros', 'mapa_molestias', 'preconsultas', 'traslados'] as $tabla) {
     $existe = $bd->query("SHOW TABLES LIKE '$tabla'")->num_rows === 1;
     revisar('Esquema', "Tabla $tabla", $existe);
 }
@@ -201,7 +201,10 @@ $datosPre = json_decode($m[1] ?? '', true);
 $respuesta = json_encode([
     'token'      => $datosPre['token'] ?? '',
     'id_cliente' => sprintf('%08x-%04x-4%03x-a%03x-%012x', random_int(0, 0xffffffff), random_int(0, 0xffff), random_int(0, 0xfff), random_int(0, 0xfff), random_int(0, 0xffffffffffff)),
-    'respuestas' => ['motivo' => 'Dolor de garganta y fiebre', 'inicio' => 'dias', 'medicamentos' => 'Amoxicilina 500 mg', 'alergias' => 'Penicilina', 'pregunta' => ''],
+    'respuestas' => [
+        'motivo' => 'Dolor de garganta y fiebre', 'inicio' => 'dias', 'medicamentos' => 'Amoxicilina 500 mg', 'alergias' => 'Penicilina', 'pregunta' => '',
+        'traslado' => ['tipo' => 'ida_vuelta', 'direccion' => 'Av. Reforma 123, Centro, Puebla', 'notas' => 'Usa bastón']
+    ],
     'molestias'  => [['zona' => 'cuello', 'sensacion' => 'ardor', 'intensidad' => 5, 'desde' => date('Y-m-d', strtotime('-2 days'))]]
 ]);
 
@@ -216,6 +219,40 @@ $r = paginaBien('APIs', $ruta, 410);
 
 $exp = pedir('expediente.php?id=1');
 revisar('APIs', 'Resumen y alerta de alergia en el expediente', strpos($exp['cuerpo'], 'pre-resumen-ia') !== false && strpos($exp['cuerpo'], 'pre-alerta') !== false, $exp);
+
+/* Traslado a la cita: el que pidió el paciente en su pre-consulta y el que programa el médico */
+revisar('APIs', 'El traslado que pidió el paciente aparece en el expediente', strpos($exp['cuerpo'], 'id="traslado"') !== false && strpos($exp['cuerpo'], 'Lo pidió el paciente') !== false && strpos($exp['cuerpo'], 'Av. Reforma 123') !== false, $exp);
+
+preg_match('/name="traslado_id" value="(\d+)"/', $exp['cuerpo'], $m);
+$trasladoId = $m[1] ?? '0';
+$r = pedir('traslado.php', ['post' => http_build_query(['csrf_token' => $csrf, 'paciente_id' => 1, 'traslado_id' => $trasladoId, 'accion' => 'estado', 'estado' => 'confirmado'])]);
+$exp = pedir('expediente.php?id=1');
+revisar('APIs', 'No se confirma un traslado sin chofer', strpos($exp['cuerpo'], 'Escribe el nombre del chofer') !== false && strpos($exp['cuerpo'], 'Asignar chofer y confirmar') !== false, $r);
+
+$r = pedir('traslado.php', ['post' => http_build_query([
+    'csrf_token' => $csrf, 'paciente_id' => 1, 'traslado_id' => $trasladoId, 'accion' => 'estado', 'estado' => 'confirmado',
+    'chofer_nombre' => 'Ramón Hernández', 'chofer_telefono' => '222 418 7730', 'vehiculo' => 'Nissan Urvan blanca, placas TXA-482-B'
+])]);
+$exp = pedir('expediente.php?id=1');
+revisar('APIs', 'Confirmar el traslado con chofer', in_array($r['codigo'], [302, 303], true) && strpos($exp['cuerpo'], 'El chofer ya salió') !== false && strpos($exp['cuerpo'], 'wa.me/522224187730') !== false, $r);
+
+$r = pedir('traslado.php', ['post' => http_build_query(['csrf_token' => $csrf, 'paciente_id' => 1, 'traslado_id' => $trasladoId, 'accion' => 'estado', 'estado' => 'completado'])]);
+$exp = pedir('expediente.php?id=1');
+revisar('APIs', 'El traslado no se salta pasos', strpos($exp['cuerpo'], 'Ese traslado ya cambió') !== false && strpos($exp['cuerpo'], 'El chofer ya salió') !== false, $r);
+
+$agenda = pedir('agenda.php');
+revisar('APIs', 'La agenda marca la cita con traslado', strpos($agenda['cuerpo'], 'tras-chip') !== false && strpos($agenda['cuerpo'], 'Traslado confirmado') !== false && sinErrores($agenda) === '', $agenda, sinErrores($agenda));
+
+$r = pedir('traslado.php', ['post' => http_build_query(['csrf_token' => $csrf, 'paciente_id' => 2, 'accion' => 'crear', 'tipo' => 'ida', 'direccion' => 'Calle 5', 'minutos_antes' => 60])]);
+$exp = pedir('expediente.php?id=2');
+revisar('APIs', 'Rechaza un traslado sin dirección completa', strpos($exp['cuerpo'], 'Escribe la dirección') !== false && strpos($exp['cuerpo'], 'Programar traslado') !== false, $r);
+
+$r = pedir('traslado.php', ['post' => http_build_query(['csrf_token' => $csrf, 'paciente_id' => 2, 'accion' => 'crear', 'tipo' => 'ida', 'direccion' => 'Calle 5 Sur 1203, Col. Centro, Puebla', 'minutos_antes' => 60, 'notas' => ''])]);
+$exp = pedir('expediente.php?id=2');
+revisar('APIs', 'El médico programa un traslado', in_array($r['codigo'], [302, 303], true) && strpos($exp['cuerpo'], 'Asignar chofer y confirmar') !== false && sinErrores($exp) === '', $exp, sinErrores($exp));
+
+$r = pedir('traslado.php', ['post' => http_build_query(['paciente_id' => 2, 'accion' => 'cancelar', 'traslado_id' => 1])]);
+revisar('APIs', 'traslado.php rechaza peticiones sin token CSRF', $r['codigo'] === 403, $r);
 
 $r = pedir('api/notas.php?accion=guardar');
 revisar('APIs', 'api/notas.php solo acepta POST', $r['codigo'] === 405, $r);

@@ -3,10 +3,10 @@
 /* =====================================================
    MEDICORE PROFESSIONAL SYSTEM
    ACTUALIZACIÓN AUTOMÁTICA DEL ESQUEMA
-   Tablas de alergias, chatbot, push, notas, SomaMap y pre-consulta, y llaves con ON DELETE CASCADE para que
+   Tablas de alergias, chatbot, push, notas, SomaMap, pre-consulta y traslados, y llaves con ON DELETE CASCADE para que
    al borrar un paciente se borre todo lo suyo. Corre una vez y deja una marca
    (el mismo SQL está en database/migracion_innovacion.sql, database/migracion_cascada.sql
-   database/migracion_mapa_corporal.sql y database/migracion_preconsulta.sql)
+   database/migracion_mapa_corporal.sql, database/migracion_preconsulta.sql y database/migracion_traslados.sql)
 ===================================================== */
 
 if (!function_exists('asegurarBorradoEnCascada')) {
@@ -58,9 +58,10 @@ if (!function_exists('prepararEsquemaInnovacion')) {
         // v3 = notas_consulta y borrado en cascada de todo lo del paciente
         // v4 = mapa corporal de molestias y tres avisos por cita (semana, mañana y hoy)
         // v5 = pre-consulta por QR (el paciente responde desde su celular antes de la cita)
+        // v6 = traslado a la cita presencial (ida, regreso o los dos)
         $marcas = [
-            __DIR__ . '/../logs/.esquema_innovacion_v5',
-            __DIR__ . '/../sessions_data/.esquema_innovacion_v5'
+            __DIR__ . '/../logs/.esquema_innovacion_v6',
+            __DIR__ . '/../sessions_data/.esquema_innovacion_v6'
         ];
 
         foreach ($marcas as $marca) {
@@ -225,6 +226,37 @@ if (!function_exists('prepararEsquemaInnovacion')) {
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             ");
 
+            // Traslado a la cita presencial: el consultorio lleva y trae al paciente.
+            // origen = quién lo pidió (médico en el expediente o paciente en su pre-consulta);
+            // el chofer y el vehículo se asignan al confirmarlo y cada estado guarda su hora
+            $conexion->query("
+                CREATE TABLE IF NOT EXISTS traslados (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    paciente_id INT NOT NULL,
+                    medico_id INT NULL,
+                    sucursal_id INT NULL,
+                    tipo VARCHAR(12) NOT NULL,
+                    direccion VARCHAR(255) NOT NULL,
+                    notas VARCHAR(200) NULL,
+                    minutos_antes SMALLINT UNSIGNED NOT NULL DEFAULT 45,
+                    estado VARCHAR(12) NOT NULL DEFAULT 'solicitado',
+                    origen VARCHAR(10) NOT NULL DEFAULT 'medico',
+                    chofer_nombre VARCHAR(100) NULL,
+                    chofer_telefono VARCHAR(20) NULL,
+                    vehiculo VARCHAR(80) NULL,
+                    creado_en DATETIME NOT NULL,
+                    actualizado_en DATETIME NOT NULL,
+                    confirmado_en DATETIME NULL,
+                    en_camino_en DATETIME NULL,
+                    completado_en DATETIME NULL,
+                    cancelado_en DATETIME NULL,
+                    INDEX idx_traslados_paciente (paciente_id, estado),
+                    CONSTRAINT fk_traslados_paciente
+                        FOREIGN KEY (paciente_id) REFERENCES usuarios(id)
+                        ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            ");
+
             // Al borrar un paciente (desde la app o desde phpMyAdmin) se borra todo lo suyo
             $cascadas = [
                 ['expedientes', 'usuario_id', 'usuarios', 'fk_expedientes_usuario'],
@@ -232,7 +264,8 @@ if (!function_exists('prepararEsquemaInnovacion')) {
                 ['chatbot_consultas', 'paciente_id', 'usuarios', 'fk_chatbot_paciente'],
                 ['push_recordatorios', 'expediente_id', 'expedientes', 'fk_recordatorio_expediente'],
                 ['mapa_registros', 'paciente_id', 'usuarios', 'fk_mapa_registros_paciente'],
-                ['preconsultas', 'paciente_id', 'usuarios', 'fk_preconsultas_paciente']
+                ['preconsultas', 'paciente_id', 'usuarios', 'fk_preconsultas_paciente'],
+                ['traslados', 'paciente_id', 'usuarios', 'fk_traslados_paciente']
             ];
 
             foreach ($cascadas as $c) {
@@ -253,7 +286,7 @@ if (!function_exists('prepararEsquemaInnovacion')) {
             $listo = true;
 
             if (function_exists('registrarLog')) {
-                registrarLog("Esquema de módulos nuevos verificado (alergias, chatbot, push, notas de consulta, SomaMap, pre-consulta y borrado en cascada).", "INFO");
+                registrarLog("Esquema de módulos nuevos verificado (alergias, chatbot, push, notas de consulta, SomaMap, pre-consulta, traslados y borrado en cascada).", "INFO");
             }
         } catch (Exception $e) {
             if (function_exists('registrarLog')) {

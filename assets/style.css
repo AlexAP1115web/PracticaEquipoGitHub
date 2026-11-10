@@ -3858,3 +3858,198 @@ fieldset.pre-campo{
         overflow-wrap:anywhere;
     }
 }
+
+/* =====================================================
+   TRASLADO A LA CITA (tarjeta del expediente y pre-consulta)
+===================================================== */
+
+.tras-intro{
+    color:var(--gris);
+    font-size:14px;
+    line-height:1.5;
+    margin:0 0 4px;
+    max-width:75ch;
+}
+
+.tras-form .form-grid{
+    margin-top:10px;
+}
+
+.tras-form .btn-primary{
+    margin-top:4px;
+}
+
+.tras-pasos{
+    display:flex;
+    gap:6px;
+    list-style:none;
+    margin:0 0 16px;
+    padding:0;
+}
+
+.tras-pasos li{
+    flex:1 1 0;
+    min-width:0;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:8px 10px;
+    border-radius:var(--radio-control);
+    background:var(--papel);
+    color:var(--gris);
+    font-size:13px;
+    font-weight:600;
+    line-height:1.25;
+}
+
+.tras-pasos li span{
+    display:inline-grid;
+    place-items:center;
+    flex-shrink:0;
+    width:22px;
+    height:22px;
+    border-radius:50%;
+    background:var(--hoja);
+    border:1px solid var(--linea);
+    font-size:11px;
+}
+
+.tras-pasos li.hecho{
+    color:var(--pino);
+}
+
+.tras-pasos li.hecho span,
+.tras-pasos li[aria-current="step"] span{
+    background:var(--verde);
+    border-color:var(--verde);
+    color:#fff;
+}
+
+.tras-pasos li[aria-current="step"]{
+    background:var(--menta);
+    color:var(--pino);
+}
+
+.tras-cancelar{
+    width:100%;
+    min-height:44px;
+    border:0;
+    background:none;
+    color:var(--alerta);
+    font:inherit;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    border-radius:var(--radio-control);
+}
+
+.tras-cancelar:focus-visible{
+    box-shadow:var(--foco);
+    outline:none;
+}
+
+.pre-resumen-acciones form{
+    display:flex;
+    flex-direction:column;
+}
+
+/* Hora en que pasó cada paso del traslado */
+.tras-pasos li div{
+    display:flex;
+    flex-direction:column;
+    min-width:0;
+}
+
+.tras-pasos li small{
+    font-size:11px;
+    font-weight:500;
+    color:var(--gris);
+}
+
+/* Asignar chofer: aparece mientras el traslado está solicitado */
+.tras-chofer{
+    margin-top:18px;
+    padding:16px 18px 18px;
+    border:1px solid var(--linea);
+    border-radius:var(--radio-hoja);
+    background:var(--papel);
+}
+
+.tras-chofer h4{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin:0 0 4px;
+    font-size:15px;
+    color:var(--pino);
+}
+
+.tras-chofer h4 i{
+    color:var(--verde);
+}
+
+.tras-chofer > p{
+    margin:0 0 12px;
+    color:var(--gris);
+    font-size:14px;
+    line-height:1.45;
+}
+
+.tras-chofer input{
+    background:var(--hoja);
+}
+
+/* Insignia de la agenda */
+.tras-chip,
+.paciente-info .tras-chip{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    margin-top:4px;
+    padding:2px 8px;
+    border-radius:999px;
+    background:var(--info-fondo);
+    color:var(--info);
+    font-size:12px;
+    font-weight:700;
+    width:fit-content;
+}
+
+.tras-chip[data-estado="solicitado"],
+.paciente-info .tras-chip[data-estado="solicitado"]{
+    background:var(--precaucion-fondo);
+    color:var(--precaucion);
+}
+
+/* Títulos de tarjeta con subtítulo (SomaMap, Traslado): en celular el subtítulo baja de renglón */
+.section-title{
+    flex-wrap:wrap;
+    row-gap:2px;
+}
+
+@media (max-width:560px){
+    .section-title .mapa-marca-sub{
+        flex-basis:100%;
+    }
+}
+
+/* Pre-consulta: datos del traslado que aparecen al pedirlo */
+.pre-traslado-datos{
+    margin-top:12px;
+}
+
+@media (hover:hover) and (pointer:fine){
+    .tras-cancelar:hover{
+        background:var(--alerta-fondo);
+    }
+}
+
+@media (max-width:560px){
+    .tras-pasos li{
+        flex-direction:column;
+        text-align:center;
+        font-size:12px;
+        padding:8px 4px;
+        gap:4px;
+    }
+}

@@ -6,7 +6,8 @@ require_once __DIR__ . "/config/esquema.php";
 /* ======================================================
    ELIMINAR PACIENTE
    Borra todo lo del paciente de una vez (recordatorios, consultas del asistente, notas,
-   SomaMap, pre-consultas, expediente y usuario) en una transacción, aunque la base aún no tenga ON DELETE CASCADE
+   SomaMap, pre-consultas, traslados, expediente y usuario) en una transacción,
+   aunque la base aún no tenga ON DELETE CASCADE
 ====================================================== */
 
 verificarSesion();
@@ -43,6 +44,7 @@ $consultas = [
     "DELETE FROM mapa_molestias WHERE registro_id IN (SELECT id FROM mapa_registros WHERE paciente_id = ?)",
     "DELETE FROM mapa_registros WHERE paciente_id = ?",
     "DELETE FROM preconsultas WHERE paciente_id = ?",
+    "DELETE FROM traslados WHERE paciente_id = ?",
     "DELETE FROM expedientes WHERE usuario_id = ?",
     "DELETE FROM usuarios WHERE id = ? AND rol = 'paciente'"
 ];

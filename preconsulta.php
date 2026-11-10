@@ -10,7 +10,8 @@ define('MEDICORE_SOMAMAP', true);
 /* ======================================================
    PRE-CONSULTA POR QR (página pública, sin cuenta)
    El paciente la abre con el QR que generó su médico en el expediente:
-   1. Contesta por qué viene, desde cuándo, qué medicamentos toma y sus alergias.
+   1. Contesta por qué viene, desde cuándo, qué medicamentos toma, sus alergias y si
+      necesita que lo lleven a la cita (traslado).
    2. Marca en SomaMap dónde siente algo (assets/js/mapa-corporal.js en modo preconsulta).
    3. Al médico le llega el resumen en el expediente y un aviso push.
    El enlace sirve una sola vez y vence en 72 horas.
@@ -158,6 +159,27 @@ if ($estado === 'valida') {
                         <textarea name="pregunta" rows="2" maxlength="300"></textarea>
                     </label>
 
+                    <fieldset class="mapa-campo pre-campo">
+                        <legend>¿Necesitas que te llevemos a tu cita? <small>(solo citas en el consultorio)</small></legend>
+                        <div class="mapa-chips">
+                            <label><input type="radio" name="traslado" value="no" checked><span>No, gracias</span></label>
+                            <?php foreach (trasladoTipos() as $clave => $texto): ?>
+                                <label><input type="radio" name="traslado" value="<?= e($clave) ?>"><span><?= e($texto) ?></span></label>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <div class="pre-traslado-datos" id="preTrasladoDatos" hidden>
+                            <label class="pre-campo">
+                                <span>¿Dónde pasamos por ti?</span>
+                                <input type="text" name="traslado_direccion" id="preTrasladoDireccion" maxlength="255" autocomplete="street-address" placeholder="Calle, número, colonia y referencias">
+                            </label>
+                            <label class="pre-campo">
+                                <span>¿Algo que debamos saber? <small>(opcional)</small></span>
+                                <input type="text" name="traslado_notas" maxlength="200" autocomplete="off" placeholder="Ej. uso silla de ruedas, voy con un acompañante">
+                            </label>
+                        </div>
+                    </fieldset>
+
                     <p class="mapa-error" id="preError" role="alert" hidden></p>
 
                     <button type="submit" class="btn-primary btn-grande">
@@ -269,19 +291,40 @@ if ($estado === 'valida') {
                     });
                 }
 
+                // Traslado: la dirección solo aparece si pide que lo lleven
+                const trasladoDatos = document.getElementById('preTrasladoDatos');
+                const trasladoDireccion = document.getElementById('preTrasladoDireccion');
+
+                // El aviso de "falta contestar" se quita en cuanto el paciente corrige
+                form.addEventListener('input', function () {
+                    error.hidden = true;
+                });
+
+                form.addEventListener('change', function (e) {
+                    if (e.target.name === 'traslado') {
+                        trasladoDatos.hidden = e.target.value === 'no';
+                        if (e.target.value !== 'no') {
+                            trasladoDireccion.focus();
+                        }
+                    }
+                });
+
                 form.addEventListener('submit', function (e) {
                     e.preventDefault();
                     const motivo = form.motivo.value.trim();
                     const inicio = form.querySelector('input[name="inicio"]:checked');
+                    const traslado = form.querySelector('input[name="traslado"]:checked').value;
+                    const direccion = trasladoDireccion.value.trim();
                     const faltan = [];
 
                     if (motivo.length < 3) faltan.push('por qué vienes');
                     if (!inicio) faltan.push('desde cuándo te sientes así');
+                    if (traslado !== 'no' && direccion.length < 8) faltan.push('dónde pasamos por ti');
 
                     if (faltan.length) {
-                        error.textContent = 'Falta contestar ' + faltan.join(' y ') + '.';
+                        error.textContent = 'Falta contestar ' + faltan.join(', ').replace(/, ([^,]*)$/, ' y $1') + '.';
                         error.hidden = false;
-                        (motivo.length < 3 ? form.motivo : form.querySelector('input[name="inicio"]')).focus();
+                        (motivo.length < 3 ? form.motivo : (!inicio ? form.querySelector('input[name="inicio"]') : trasladoDireccion)).focus();
                         return;
                     }
 
@@ -291,7 +334,12 @@ if ($estado === 'valida') {
                         inicio: inicio.value,
                         medicamentos: form.medicamentos.value.trim(),
                         alergias: form.alergias.value.trim(),
-                        pregunta: form.pregunta.value.trim()
+                        pregunta: form.pregunta.value.trim(),
+                        traslado: traslado === 'no' ? { tipo: 'no' } : {
+                            tipo: traslado,
+                            direccion: direccion,
+                            notas: form.traslado_notas.value.trim()
+                        }
                     };
 
                     paso1.hidden = true;

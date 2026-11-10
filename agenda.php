@@ -1,8 +1,11 @@
 <?php
 include("config.php");
 include("security.php");
+require_once __DIR__ . "/config/esquema.php";
+require_once __DIR__ . "/integrations/Traslados.php";
 
 verificarSesion();
+prepararEsquemaInnovacion($conexion);
 
 /* ======================================================
    OBTENER CITAS PROGRAMADAS
@@ -33,6 +36,10 @@ $citas = $result->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
 $total_citas = count($citas);
+
+// Pacientes con traslado pendiente para su cita presencial
+$traslados = trasladosActivosPorPaciente($conexion);
+$estadosTraslado = trasladoEstados();
 
 /* ======================================================
    MÉTRICAS
@@ -319,6 +326,14 @@ foreach ($citas as $cita) {
                                             <span>
                                                 <?= htmlspecialchars($cita['email']) ?>
                                             </span>
+
+                                            <?php if (isset($traslados[(int) $cita['id']])): ?>
+                                                <?php $estadoTraslado = $traslados[(int) $cita['id']]; ?>
+                                                <span class="tras-chip" data-estado="<?= htmlspecialchars($estadoTraslado) ?>">
+                                                    <i class="fas fa-van-shuttle" aria-hidden="true"></i>
+                                                    Traslado <?= mb_strtolower($estadosTraslado[$estadoTraslado]) ?>
+                                                </span>
+                                            <?php endif; ?>
 
                                         </div>
 
