@@ -9,6 +9,7 @@
 ===================================================== */
 
 require_once __DIR__ . '/config/apis.php';
+require_once __DIR__ . '/config/zona_horaria.php';
 
 date_default_timezone_set('America/Mexico_City');
 header('Content-Type: application/json; charset=utf-8');
@@ -41,10 +42,14 @@ try {
         (int) apiConfig('DB_PORT', '3306')
     );
     $bd->query('SELECT 1');
+    $salud['bd_ms'] = round((microtime(true) - $inicioBd) * 1000, 1);
+
+    // Misma hora que usa el sistema; si el desfase no es 0, las citas de hoy salen en otro día
+    igualarHoraBaseDatos($bd);
+    $salud['desfase_hora_bd_s'] = desfaseHoraBaseDatos($bd);
     $bd->close();
 
     $salud['base_de_datos'] = 'ok';
-    $salud['bd_ms'] = round((microtime(true) - $inicioBd) * 1000, 1);
 } catch (Throwable $e) {
     $salud['estado'] = 'error';
     $salud['base_de_datos'] = 'sin conexión';

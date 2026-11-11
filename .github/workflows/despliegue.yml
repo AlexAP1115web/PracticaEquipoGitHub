@@ -1,0 +1,36 @@
+# =====================================================
+# MEDICORE PROFESSIONAL SYSTEM
+# Verificación del despliegue: cuando "CI MediCore" aprueba un push a main, Railway publica
+# el commit. Este flujo espera a que /salud.php reporte ese commit y registra el tiempo de entrega.
+# =====================================================
+
+name: Verificar despliegue
+
+on:
+  workflow_run:
+    workflows: ["CI MediCore"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    name: Producción con la versión nueva
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      URL_APP: https://practicaequipogithub-production.up.railway.app
+      COMMIT: ${{ github.event.workflow_run.head_sha }}
+      HORA_PUSH: ${{ github.event.workflow_run.created_at }}
+      LIMITE_MINUTOS: 15
+
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v7
+
+      - name: Esperar la versión nueva en /salud.php
+        run: bash pruebas/verificar_despliegue.sh

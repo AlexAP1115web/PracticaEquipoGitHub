@@ -27,7 +27,7 @@ jobs:
 
     steps:
       - name: Descargar el código
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Revisar salud, disponibilidad y tiempos de respuesta
         run: bash pruebas/monitoreo.sh

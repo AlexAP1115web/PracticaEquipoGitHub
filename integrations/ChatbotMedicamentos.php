@@ -126,7 +126,11 @@ if (!function_exists('candidatosMedicamento')) {
             'hace', 'crea', 'partir', 'onda', 'adultos', 'mayores', 'persona', 'personas', 'gente', 'mujer', 'mujeres', 'hombre',
             'recomiendas', 'recomienda', 'bueno', 'buena', 'malo', 'mala', 'tanto', 'algo', 'cosa', 'cosas', 'dia', 'dias',
             'diario', 'semana', 'semanas', 'mes', 'meses', 'ano', 'anos', 'veces', 'doctor', 'doctora', 'medico', 'medica',
-            'receta', 'recetar', 'recete', 'normal', 'puede', 'podria', 'seria', 'debo', 'dosis', 'tomando', 'toman', 'algo'
+            'receta', 'recetar', 'recete', 'normal', 'puede', 'podria', 'seria', 'debo', 'dosis', 'tomando', 'toman', 'algo',
+            // Síntomas: son la molestia, no el medicamento
+            'duele', 'duelen', 'dolor', 'dolores', 'cabeza', 'fiebre', 'gripa', 'gripe', 'resfriado', 'garganta', 'estomago',
+            'panza', 'diarrea', 'nausea', 'nauseas', 'vomito', 'vomitos', 'mareo', 'mareos', 'cansancio', 'sintoma', 'sintomas',
+            'tengo', 'siento', 'enfermo', 'enferma', 'recomiendo', 'recomendar'
         ];
 
         foreach (temasChatbot() as $tema) {
@@ -193,20 +197,86 @@ if (!function_exists('identificarConGemini')) {
     }
 }
 
+if (!function_exists('tipoCortesiaChatbot')) {
+    // "hola, ¿cómo estás?", "muchas gracias", "adiós": mensajes sin pregunta de medicamento
+    function tipoCortesiaChatbot($pregunta)
+    {
+        $texto = ' ' . normalizarTextoClinico($pregunta) . ' ';
+        $original = trim($texto);
+        $frases = [
+            'que puedes hacer', 'para que sirves', 'como funcionas', 'como te llamas', 'quien eres', 'que haces',
+            'como estas', 'como esta', 'como te va', 'que tal', 'buenos dias', 'buenas tardes', 'buenas noches', 'buen dia',
+            'muchas gracias', 'mil gracias', 'hasta luego', 'hasta pronto', 'nos vemos', 'muy bien', 'y tu',
+            'hola', 'holi', 'buenas', 'gracias', 'ok', 'okey', 'va', 'vale', 'hey', 'oye', 'saludos', 'ayuda', 'adios', 'bye',
+            'perfecto', 'excelente', 'genial', 'listo', 'bien', 'doctor', 'doctora', 'bot', 'asistente', 'medicore', 'amigo'
+        ];
+
+        foreach ($frases as $frase) {
+            $texto = str_replace(' ' . $frase . ' ', ' ', $texto);
+            $texto = str_replace(' ' . $frase . ' ', ' ', $texto);
+        }
+
+        if ($original === '' || trim($texto) !== '') {
+            return null;
+        }
+
+        if (preg_match('/\b(adios|bye|hasta luego|hasta pronto|nos vemos)\b/', $original)) {
+            return 'despedida';
+        }
+
+        if (preg_match('/\bgracias\b/', $original) && !preg_match('/\b(hola|buenas|buenos|buen)\b/', $original)) {
+            return 'gracias';
+        }
+
+        return 'saludo';
+    }
+}
+
 if (!function_exists('esSaludoChatbot')) {
-    // "hola", "gracias", "¿qué puedes hacer?": se contesta sin buscar medicamento
     function esSaludoChatbot($pregunta)
+    {
+        return tipoCortesiaChatbot($pregunta) !== null;
+    }
+}
+
+if (!function_exists('esPreguntaDeSintomas')) {
+    // "me duele la cabeza, ¿qué tomo?": pide un diagnóstico o un tratamiento, no datos de un medicamento
+    function esPreguntaDeSintomas($pregunta)
     {
         $texto = normalizarTextoClinico($pregunta);
 
-        return (bool) preg_match('/^(hola|buenas|buen dia|buenos dias|buenas tardes|buenas noches|gracias|muchas gracias|ok|okey|que puedes hacer|que haces|ayuda|como funcionas|quien eres)( [a-z]+)?$/', $texto);
+        return (bool) preg_match('/\b(me duele|le duele|duele|dolor|fiebre|gripa|gripe|resfriado|diarrea|nauseas?|vomitos?|mareos?|sintomas?|diagnostico|que tomo|que me tomo|que le doy|que me recomiendas|que recomiendas|que tengo|que tiene)\b/', $texto);
+    }
+}
+
+if (!function_exists('respuestaSinMedicamentoChatbot')) {
+    function respuestaSinMedicamentoChatbot($texto)
+    {
+        return [
+            'ok'         => true,
+            'encontrado' => false,
+            'respuesta'  => $texto,
+            'alertas'    => [],
+            'fuente'     => 'CIMA (AEMPS)',
+            'cofepris'   => COFEPRIS_VISOR
+        ];
     }
 }
 
 if (!function_exists('responderConsultaMedicamento')) {
     function responderConsultaMedicamento($conexion, $medicoId, $pregunta, $pacienteId = null)
     {
-        if (esSaludoChatbot($pregunta)) {
+        $cortesia = tipoCortesiaChatbot($pregunta);
+
+        if ($cortesia === 'gracias') {
+            return respuestaSinMedicamentoChatbot('Con gusto. Si tienes otra duda de un medicamento, escríbela aquí.');
+        }
+
+        if ($cortesia === 'despedida') {
+            return respuestaSinMedicamentoChatbot('Hasta luego. Cuando necesites consultar un medicamento, aquí estaré.');
+        }
+
+        if ($cortesia === 'saludo') {
             return [
                 'ok'         => true,
                 'encontrado' => false,
@@ -291,14 +361,24 @@ if (!function_exists('responderConsultaMedicamento')) {
         }
 
         if (!$medicamento) {
-            return [
-                'ok'        => true,
-                'encontrado' => false,
-                'respuesta' => "No pude identificar el medicamento en tu pregunta. Escribe el nombre del principio activo, por ejemplo: \"efectos secundarios del ibuprofeno\" o \"contraindicaciones de la amoxicilina\".",
-                'alertas'   => [],
-                'fuente'    => 'CIMA (AEMPS)',
-                'cofepris'  => COFEPRIS_VISOR
-            ];
+            if (esPreguntaDeSintomas($pregunta)) {
+                return respuestaSinMedicamentoChatbot(
+                    "Este asistente no da diagnósticos ni elige el tratamiento a partir de síntomas; eso se decide al revisar al paciente. " .
+                    "Lo que sí hace es darte la información oficial de un medicamento. Escribe su nombre, por ejemplo:\n" .
+                    "- ¿El ibuprofeno sirve para el dolor de cabeza?\n" .
+                    "- ¿Cuánto paracetamol le doy a un niño de 5 años?"
+                );
+            }
+
+            if (!$temaExplicito) {
+                return respuestaSinMedicamentoChatbot(
+                    "Solo puedo ayudarte con dudas de medicamentos: dosis, efectos secundarios, contraindicaciones, interacciones, embarazo y alergias del paciente. " .
+                    "Escribe el nombre del medicamento, por ejemplo: \"¿El clonazepam crea dependencia?\"\n" .
+                    "Para citas, pacientes o expedientes usa el menú de MediCore."
+                );
+            }
+
+            return respuestaSinMedicamentoChatbot("No pude identificar el medicamento en tu pregunta. Escribe el nombre del principio activo, por ejemplo: \"efectos secundarios del ibuprofeno\" o \"contraindicaciones de la amoxicilina\".");
         }
 
         $_SESSION['chatbot_ultimo_medicamento'] = $medicamento;

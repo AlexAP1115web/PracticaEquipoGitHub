@@ -12,6 +12,7 @@ date_default_timezone_set("America/Mexico_City");
 ===================================================== */
 
 require_once __DIR__ . '/config/apis.php';
+require_once __DIR__ . '/config/zona_horaria.php';
 
 /* =====================================================
    LOGS
@@ -115,9 +116,8 @@ try {
     $conexion = new mysqli($host, $user, $pass, $db, (int) $puerto);
     $conexion->set_charset("utf8mb4");
 
-    // MySQL con la misma hora que PHP (México). En Railway el servidor está en UTC y en la noche
-    // CURDATE() ya era el día siguiente: las citas de hoy contaban como de mañana
-    $conexion->query("SET time_zone = '" . date('P') . "'");
+    // MySQL con la misma hora que PHP (México); ver config/zona_horaria.php
+    igualarHoraBaseDatos($conexion);
 } catch (Exception $e) {
     registrarLog("Fallo crítico de conexión MySQL: " . $e->getMessage(), "CRITICAL");
 

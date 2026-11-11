@@ -43,6 +43,13 @@ revisar() {
     elif [ "$ruta" = "/salud.php" ] && ! grep -q '"estado":"ok"' "$CUERPO"; then
         resultado="Falla: la base de datos no responde"
         fallas=$((fallas + 1))
+    elif [ "$ruta" = "/salud.php" ]; then
+        # Desfase entre la hora de MySQL y la de México (incidente del 26/10). Sin el dato no se marca falla
+        desfase=$(grep -o '"desfase_hora_bd_s":-\?[0-9]*' "$CUERPO" | cut -d: -f2)
+        if [ -n "$desfase" ] && [ "${desfase#-}" -gt 120 ]; then
+            resultado="Falla: la base de datos tiene $desfase s de desfase"
+            fallas=$((fallas + 1))
+        fi
     fi
 
     # La versión se guarda aquí porque el archivo de respuesta se reutiliza en cada revisión

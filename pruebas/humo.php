@@ -4,7 +4,7 @@
    MEDICORE - ETAPA 3 DEL PIPELINE: PRUEBAS DE HUMO
    Levanta el sistema con el servidor de PHP y revisa que cada módulo responda bien:
    páginas públicas, protección de sesión, inicio de sesión, módulos del médico, APIs,
-   tablas creadas por la app y cierre de sesión.
+   tablas creadas por la app, zona horaria de las citas y cierre de sesión.
    Uso: php pruebas/humo.php http://127.0.0.1:8080
    Variables: DB_*, CI_CORREO, CI_PASSWORD
 ===================================================== */
@@ -113,6 +113,11 @@ paginaBien('Públicas', 'preconsulta.php?t=' . str_repeat('0', 48), 404);
 $salud = pedir('salud.php');
 $json = json_decode($salud['cuerpo'], true);
 revisar('Públicas', 'salud.php (estado y base de datos)', $salud['codigo'] === 200 && ($json['estado'] ?? '') === 'ok' && ($json['base_de_datos'] ?? '') === 'ok', $salud);
+
+// Incidente del 26/10: MySQL en UTC y PHP en hora de México. En GitHub Actions MySQL también está
+// en UTC, así que si alguien quita la corrección esta prueba falla a cualquier hora del día
+$desfase = $json['desfase_hora_bd_s'] ?? null;
+revisar('Públicas', 'La base de datos usa la hora de México', is_int($desfase) && abs($desfase) <= 120, $salud, is_int($desfase) ? "desfase de $desfase s" : 'sin dato de hora');
 
 /* 2. Sin sesión, los módulos regresan al login */
 foreach (['index.php', 'pacientes.php', 'expediente.php?id=1', 'reportes.php'] as $ruta) {
@@ -257,7 +262,16 @@ revisar('APIs', 'traslado.php rechaza peticiones sin token CSRF', $r['codigo'] =
 $r = pedir('api/notas.php?accion=guardar');
 revisar('APIs', 'api/notas.php solo acepta POST', $r['codigo'] === 405, $r);
 
-/* 7. Cierre de sesión */
+/* 7. Zona horaria (incidente del 26/10/2026): el servidor de MySQL trabaja en UTC y en la noche
+   CURDATE() ya era el día siguiente, así que las citas de hoy se contaban como de mañana.
+   config.php iguala la zona de MySQL con la de PHP; aquí se comprueba con una cita de hoy. */
+$hoy = date('Y-m-d');   // fecha de México, la misma que usa todo el sistema
+$bd->query("UPDATE expedientes SET fecha_cita = '$hoy' WHERE usuario_id = 1");
+$inicio = pedir('index.php');
+preg_match('/data-citas-hoy="(\d+)"/', $inicio['cuerpo'], $m);
+revisar('Zona horaria', 'Las citas de hoy se cuentan con la fecha de México', ($m[1] ?? '') === '1', $inicio, 'citas hoy: ' . ($m[1] ?? 'sin dato') . ', fecha ' . $hoy);
+
+/* 8. Cierre de sesión */
 pedir('logout.php');
 $r = pedir('index.php');
 revisar('Sesión', 'Después de cerrar sesión regresa al login', in_array($r['codigo'], [301, 302, 303], true), $r);

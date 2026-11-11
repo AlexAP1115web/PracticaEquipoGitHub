@@ -11,14 +11,28 @@ Cada cambio que llega a `main` pasa por este flujo:
 2. **GitHub Actions (`.github/workflows/ci.yml`)** corre las pruebas en una máquina limpia con PHP 8.2 y MySQL 8.0:
    - Etapa 1: `pruebas/sintaxis.sh` revisa la sintaxis de todos los archivos PHP.
    - Etapa 2: `pruebas/preparar_bd.sh` crea una base de prueba con `database/schema.sql` y datos de ejemplo.
-   - Etapa 3: `pruebas/humo.sh` levanta el sistema y revisa páginas públicas, sesión, módulos, esquema y APIs.
+   - Etapa 3: `pruebas/humo.sh` levanta el sistema y corre 61 pruebas de humo (páginas, sesión, módulos, esquema, APIs y hora de la base de datos).
 3. **Railway** tiene activado *Wait for CI*: el despliegue espera a que termine el flujo y se cancela si falla.
 4. Railway construye la imagen con el `Dockerfile` y antes de dirigir el tráfico revisa `/salud.php` (healthcheck).
    Si no responde 200, la versión anterior sigue publicada.
 5. **Monitoreo (`.github/workflows/monitoreo.yml`)**: cada 30 minutos revisa `/salud.php`, `/login.php` y `/home.php`
-   en producción y falla si algo no responde o tarda más de lo acordado.
+   en producción y falla si algo no responde, tarda más de lo acordado o la base de datos tiene otra hora.
+6. **Verificación del despliegue (`.github/workflows/despliegue.yml`)**: cuando las pruebas aprueban un push, espera a que
+   `/salud.php` reporte el commit nuevo y registra el tiempo de entrega; falla si tarda más de 15 minutos.
 
-Detalle de cada prueba: [`pruebas/README.md`](pruebas/README.md).
+Si una versión publicada falla, en Railway → Deployments se vuelve a publicar el último despliegue que funcionaba (*Redeploy*)
+mientras se corrige el error en un commit nuevo.
+
+## Scripts del repositorio
+
+| Tipo | Archivos |
+|---|---|
+| Flujo de trabajo (pipeline) | `.github/workflows/ci.yml`, `.github/workflows/despliegue.yml`, `.github/workflows/monitoreo.yml` |
+| Generación del entorno de liberación | `pruebas/entorno.sh`, `pruebas/preparar_bd.sh`, `pruebas/datos_prueba.php` |
+| Pruebas en el entorno de liberación | `pruebas/sintaxis.sh`, `pruebas/humo.sh`, `pruebas/humo.php`, `pruebas/monitoreo.sh` |
+| Generación del despliegue | `Dockerfile`, `docker-entrypoint.sh`, `.dockerignore`, `salud.php`, `pruebas/verificar_despliegue.sh` |
+
+Detalle de cada script y cómo correrlos en local: [`pruebas/README.md`](pruebas/README.md).
 
 ## Entorno
 
