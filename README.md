@@ -11,7 +11,7 @@ Cada cambio que llega a `main` pasa por este flujo:
 2. **GitHub Actions (`.github/workflows/ci.yml`)** corre las pruebas en una máquina limpia con PHP 8.2 y MySQL 8.0:
    - Etapa 1: `pruebas/sintaxis.sh` revisa la sintaxis de todos los archivos PHP.
    - Etapa 2: `pruebas/preparar_bd.sh` crea una base de prueba con `database/schema.sql` y datos de ejemplo.
-   - Etapa 3: `pruebas/humo.sh` levanta el sistema y corre 61 pruebas de humo (páginas, sesión, módulos, esquema, APIs y hora de la base de datos).
+   - Etapa 3: `pruebas/humo.sh` levanta el sistema y corre 62 pruebas de humo (páginas, sesión, módulos, esquema, APIs, correo y hora de la base de datos).
 3. **Railway** tiene activado *Wait for CI*: el despliegue espera a que termine el flujo y se cancela si falla.
 4. Railway construye la imagen con el `Dockerfile` y antes de dirigir el tráfico revisa `/salud.php` (healthcheck).
    Si no responde 200, la versión anterior sigue publicada.

@@ -1,86 +1,21 @@
 <?php
-
 /* =====================================================
    MEDICORE PROFESSIONAL SYSTEM
-   INTEGRACIÓN: SENDGRID (correos transaccionales)
-   Con cURL, sin SDK. Sin SENDGRID_API_KEY solo regresa false y lo deja en el log
+   Compatibilidad: los correos ahora salen por integrations/Correo.php (Brevo o SendGrid)
 ===================================================== */
 
-require_once __DIR__ . '/../config/apis.php';
+require_once __DIR__ . '/Correo.php';
 
 if (!function_exists('sendGridDisponible')) {
     function sendGridDisponible()
     {
-        return apiHabilitada(['SENDGRID_API_KEY']);
+        return proveedorCorreo() !== null;
     }
 }
 
 if (!function_exists('enviarCorreoSendGrid')) {
-    // API v3, true si SendGrid responde 2xx
     function enviarCorreoSendGrid($destinatarioEmail, $destinatarioNombre, $asunto, $contenidoHtml)
     {
-        if (!sendGridDisponible()) {
-
-            if (function_exists('registrarLog')) {
-                registrarLog(
-                    "SendGrid no configurado. No se envió correo a $destinatarioEmail (asunto: $asunto).",
-                    "WARNING"
-                );
-            }
-
-            return false;
-        }
-
-        $apiKey    = apiConfig('SENDGRID_API_KEY');
-        $fromEmail = apiConfig('SENDGRID_FROM_EMAIL', 'notificaciones@medicore.com');
-        $fromName  = apiConfig('SENDGRID_FROM_NAME', 'MediCore Professional System');
-
-        $payload = [
-            'personalizations' => [[
-                'to' => [[
-                    'email' => $destinatarioEmail,
-                    'name'  => $destinatarioNombre
-                ]],
-                'subject' => $asunto
-            ]],
-            'from' => [
-                'email' => $fromEmail,
-                'name'  => $fromName
-            ],
-            'content' => [[
-                'type'  => 'text/html',
-                'value' => $contenidoHtml
-            ]]
-        ];
-
-        $ch = curl_init('https://api.sendgrid.com/v3/mail/send');
-
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($payload),
-            CURLOPT_HTTPHEADER => [
-                'Authorization: Bearer ' . $apiKey,
-                'Content-Type: application/json'
-            ],
-            CURLOPT_TIMEOUT => 10
-        ]);
-
-        curl_exec($ch);
-        $codigoHttp = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $errorCurl  = curl_error($ch);
-        curl_close($ch);
-
-        $exito = ($codigoHttp >= 200 && $codigoHttp < 300);
-
-        if (function_exists('registrarLog')) {
-            registrarLog(
-                "SendGrid -> $destinatarioEmail | Asunto: $asunto | HTTP $codigoHttp" .
-                    ($errorCurl ? " | Error cURL: $errorCurl" : ""),
-                $exito ? "INFO" : "WARNING"
-            );
-        }
-
-        return $exito;
+        return enviarCorreo($destinatarioEmail, $destinatarioNombre, $asunto, $contenidoHtml)['ok'];
     }
 }

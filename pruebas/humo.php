@@ -252,6 +252,10 @@ $r = pedir('traslado.php', ['post' => http_build_query(['csrf_token' => $csrf, '
 $exp = pedir('expediente.php?id=2');
 revisar('APIs', 'Rechaza un traslado sin dirección completa', strpos($exp['cuerpo'], 'Escribe la dirección') !== false && strpos($exp['cuerpo'], 'Programar traslado') !== false, $r);
 
+// Correo de prueba desde Configuración: sin llave en el servidor explica el motivo en lugar de fallar en silencio
+$r = pedir('configuracion.php', ['post' => http_build_query(['csrf_token' => $csrf, 'accion' => 'probar_correo', 'correo_prueba' => 'prueba@ejemplo.com'])]);
+revisar('APIs', 'El correo de prueba explica por qué no salió', $r['codigo'] === 200 && strpos($r['cuerpo'], 'Correos de MediCore') !== false && strpos($r['cuerpo'], 'No se pudo enviar el correo de prueba: No hay servicio de correo configurado') !== false && sinErrores($r) === '', $r, sinErrores($r));
+
 $r = pedir('traslado.php', ['post' => http_build_query(['csrf_token' => $csrf, 'paciente_id' => 2, 'accion' => 'crear', 'tipo' => 'ida', 'direccion' => 'Calle 5 Sur 1203, Col. Centro, Puebla', 'minutos_antes' => 60, 'notas' => ''])]);
 $exp = pedir('expediente.php?id=2');
 revisar('APIs', 'El médico programa un traslado', in_array($r['codigo'], [302, 303], true) && strpos($exp['cuerpo'], 'Asignar chofer y confirmar') !== false && sinErrores($exp) === '', $exp, sinErrores($exp));

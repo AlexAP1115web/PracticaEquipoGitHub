@@ -180,7 +180,7 @@
             <h2><i class="fas fa-right-left"></i> 5. Transferencia de datos</h2>
             <p>MediCore no vende ni transfiere datos personales a terceros con fines comerciales. Únicamente se comparte información estrictamente necesaria con proveedores de servicios tecnológicos que actúan como encargados del tratamiento, limitados a:</p>
             <ul>
-                <li><strong>SendGrid</strong> (envío de correos de confirmación de citas y recuperación de contraseña).</li>
+                <li><strong>Brevo</strong> (envío de correos de confirmación de citas, traslados y recuperación de contraseña).</li>
                 <li><strong>Twilio</strong> (envío de códigos de verificación OTP por SMS).</li>
                 <li><strong>Google (OAuth2 / Calendar)</strong> (inicio de sesión institucional y sincronización de citas, solo si el médico lo autoriza expresamente).</li>
             </ul>

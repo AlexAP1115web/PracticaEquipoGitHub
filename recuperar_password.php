@@ -1,7 +1,7 @@
 <?php
 include("config.php");
 require_once "security.php";
-require_once __DIR__ . "/integrations/SendGridMailer.php";
+require_once __DIR__ . "/integrations/Correo.php";
 
 /* ======================================================
    PÁGINA PÚBLICA: SOLICITAR RECUPERACIÓN DE CONTRASEÑA
@@ -45,8 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($stmtInsert->execute()) {
 
-                $urlBase = rtrim(apiConfig('APP_URL', ''), '/');
-                $urlReset = ($urlBase ?: '') . "/restablecer_password.php?token=" . urlencode($token);
+                $urlReset = urlBaseApp() . "/restablecer_password.php?token=" . urlencode($token);
 
                 $html = "
                     <div style='font-family:Arial,sans-serif;max-width:520px;margin:auto;'>
@@ -58,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 ";
 
-                enviarCorreoSendGrid($medico['correo'], $medico['nombre'], "Recuperación de contraseña - MediCore", $html);
+                enviarCorreo($medico['correo'], $medico['nombre'], "Recuperación de contraseña - MediCore", $html);
 
                 registrarLog("Solicitud de recuperación de contraseña para: " . $correo, "INFO");
             }

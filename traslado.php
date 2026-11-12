@@ -3,7 +3,7 @@ include("config.php");
 include("security.php");
 require_once __DIR__ . "/config/esquema.php";
 require_once __DIR__ . "/integrations/Traslados.php";
-require_once __DIR__ . "/integrations/SendGridMailer.php";
+require_once __DIR__ . "/integrations/Correo.php";
 require_once __DIR__ . "/integrations/WebPush.php";
 
 /* ======================================================

@@ -10,6 +10,7 @@
 
 require_once __DIR__ . '/config/apis.php';
 require_once __DIR__ . '/config/zona_horaria.php';
+require_once __DIR__ . '/integrations/Correo.php';
 
 date_default_timezone_set('America/Mexico_City');
 header('Content-Type: application/json; charset=utf-8');
@@ -56,6 +57,8 @@ try {
     http_response_code(503);
 }
 
+// Solo dice qué servicio de correo está activo, nunca las llaves
+$salud['correo'] = proveedorCorreo() ?: 'sin configurar';
 $salud['respuesta_ms'] = round((microtime(true) - $inicio) * 1000, 1);
 
 echo json_encode($salud, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

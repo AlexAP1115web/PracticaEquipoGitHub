@@ -3,6 +3,7 @@ include("config.php");
 include("security.php");
 require_once __DIR__ . "/config/esquema.php";
 require_once __DIR__ . "/integrations/WebPush.php";
+require_once __DIR__ . "/integrations/Correo.php";
 
 verificarSesion();
 prepararEsquemaInnovacion($conexion);
@@ -47,6 +48,31 @@ if (!$medico_info) {
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     validarTokenCSRF($_POST['csrf_token'] ?? '');
+
+    /* ======================================================
+       CORREO DE PRUEBA (a cualquier dirección)
+    ====================================================== */
+
+    if (($_POST['accion'] ?? '') === 'probar_correo') {
+
+        $correoPrueba = trim($_POST['correo_prueba'] ?? '');
+
+        $envio = enviarCorreo(
+            $correoPrueba,
+            '',
+            'Correo de prueba - MediCore',
+            "<div style='font-family:Arial,sans-serif;max-width:520px;margin:auto;'>" .
+                "<h2 style='color:#00843d;'>MediCore Professional System</h2>" .
+                "<p>Este es un correo de prueba enviado desde Configuración el " . date('d/m/Y \\a \\l\\a\\s H:i') . ".</p>" .
+                "<p>Si lo recibiste, las confirmaciones de cita y la recuperación de contraseña también llegarán.</p></div>"
+        );
+
+        if ($envio['ok']) {
+            $mensaje_exito = "Correo de prueba enviado a $correoPrueba. Revisa también la carpeta de spam.";
+        } else {
+            $mensaje_error = "No se pudo enviar el correo de prueba: " . $envio['error'];
+        }
+    }
 
     /* ======================================================
        ACTUALIZAR PERFIL
@@ -496,6 +522,52 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     </div>
 
                 </div>
+
+            </article>
+
+            <article class="config-card" style="grid-column:1 / -1;">
+
+                <h3>
+                    <i class="fas fa-envelope"></i>
+                    Correos de MediCore
+                </h3>
+
+                <p style="color:var(--muted);line-height:1.6;margin-bottom:14px;">
+                    MediCore envía por correo la confirmación de cada cita al paciente, los avisos del traslado y el enlace
+                    para recuperar la contraseña.
+                    <?php if (proveedorCorreo()): ?>
+                        Servicio de correo: <strong><?= htmlspecialchars(ucfirst(proveedorCorreo())) ?></strong>, remitente
+                        <strong><?= htmlspecialchars(remitenteCorreo()['email'] ?: 'sin configurar') ?></strong>.
+                    <?php else: ?>
+                        <strong>No hay servicio de correo configurado en el servidor.</strong>
+                    <?php endif; ?>
+                </p>
+
+                <form method="POST" class="correo-prueba">
+
+                    <input
+                        type="hidden"
+                        name="csrf_token"
+                        value="<?= generarTokenCSRF() ?>">
+
+                    <input type="hidden" name="accion" value="probar_correo">
+
+                    <label for="correo_prueba">Enviar un correo de prueba a</label>
+
+                    <input
+                        type="email"
+                        id="correo_prueba"
+                        name="correo_prueba"
+                        required
+                        value="<?= htmlspecialchars($_POST['correo_prueba'] ?? ($medico_info['correo'] ?? '')) ?>"
+                        placeholder="cualquier@correo.com">
+
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-paper-plane"></i>
+                        Enviar correo de prueba
+                    </button>
+
+                </form>
 
             </article>
 

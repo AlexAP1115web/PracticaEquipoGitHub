@@ -389,7 +389,7 @@ if (!function_exists('trasladoCorreoPaciente')) {
     // Correo al paciente al confirmar el traslado y cuando el chofer sale por él (si hay SendGrid y correo)
     function trasladoCorreoPaciente(array $paciente, array $traslado, array $detalle, $momento)
     {
-        if (empty($paciente['email']) || !function_exists('enviarCorreoSendGrid')) {
+        if (empty($paciente['email']) || !function_exists('enviarCorreo')) {
             return false;
         }
 
@@ -431,6 +431,6 @@ if (!function_exists('trasladoCorreoPaciente')) {
 
         $asunto = $enCamino ? 'Tu chofer va en camino - MediCore' : 'Tu traslado está confirmado - MediCore';
 
-        return enviarCorreoSendGrid($paciente['email'], $paciente['nombre'], $asunto, $cuerpo);
+        return enviarCorreo($paciente['email'], $paciente['nombre'], $asunto, $cuerpo)['ok'];
     }
 }

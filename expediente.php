@@ -1,7 +1,7 @@
 <?php
 include("config.php");
 include("security.php");
-require_once __DIR__ . "/integrations/SendGridMailer.php";
+require_once __DIR__ . "/integrations/Correo.php";
 require_once __DIR__ . "/integrations/GoogleCalendar.php";
 require_once __DIR__ . "/config/esquema.php";
 require_once __DIR__ . "/integrations/Alergias.php";
@@ -262,9 +262,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 revisarRecordatoriosEnSegundoPlano($conexion, true);
             }
 
-            if (!empty($fecha_cita) && !empty($paciente['email'])) {
+            if (!empty($fecha_cita)) {
 
-                try {
+                if (!empty($paciente['email'])) {
                     $htmlCita = "
                         <div style='font-family:Arial,sans-serif;max-width:520px;margin:auto;'>
                             <h2 style='color:#00843d;'>MediCore Professional System</h2>
@@ -276,9 +276,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         </div>
                     ";
 
-                    enviarCorreoSendGrid($paciente['email'], $paciente['nombre'], "Confirmación de cita - MediCore", $htmlCita);
-                } catch (Exception $eCorreo) {
-                    registrarLog("No se pudo enviar confirmación de cita por correo: " . $eCorreo->getMessage(), "WARNING");
+                    $correoCita = enviarCorreo($paciente['email'], $paciente['nombre'], "Confirmación de cita - MediCore", $htmlCita);
+
+                    $mensaje_exito .= $correoCita['ok']
+                        ? " Se envió la confirmación de la cita a " . $paciente['email'] . "."
+                        : " La cita se guardó, pero no se pudo enviar el correo: " . $correoCita['error'];
+                } else {
+                    $mensaje_exito .= " El paciente no tiene correo registrado, por eso no se envió la confirmación.";
                 }
 
                 try {
