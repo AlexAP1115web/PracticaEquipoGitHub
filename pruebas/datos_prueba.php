@@ -1,4 +1,6 @@
 <?php
+// Misma zona que config.php: en GitHub Actions PHP trabaja en UTC y de 18:00 a 24:00 ya sería el día siguiente
+date_default_timezone_set('America/Mexico_City');
 
 /* =====================================================
    MEDICORE - DATOS DE EJEMPLO PARA LAS PRUEBAS AUTOMÁTICAS
