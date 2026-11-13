@@ -24,7 +24,7 @@ Los scripts del repositorio se agrupan en los cuatro tipos que pide el flujo de 
 |---|---|---|
 | 1 | `sintaxis.sh` | `php -l` en todos los archivos PHP. |
 | 2 | `preparar_bd.sh` | Que el esquema se importe sin errores en una base nueva. |
-| 3 | `humo.sh` + `humo.php` | Levanta el sistema y corre 62 pruebas de humo: páginas públicas, la hora de la base de datos (`salud.php` reporta el desfase con la hora de México), sesión, los módulos del médico, el reporte en PDF, las tablas que crea `config/esquema.php`, las APIs (SomaMap, pre-consulta y traslados), el correo de prueba, la zona horaria de las citas y el cierre de sesión. También revisa que el registro del servidor no tenga errores de PHP. |
+| 3 | `humo.sh` + `humo.php` | Levanta el sistema y corre 63 pruebas de humo: páginas públicas, la sesión guardada en MySQL, la hora de la base de datos (`salud.php` reporta el desfase con la hora de México), sesión, los módulos del médico, el reporte en PDF, las tablas que crea `config/esquema.php`, las APIs (SomaMap, pre-consulta y traslados), el correo de prueba, la zona horaria de las citas y el cierre de sesión. También revisa que el registro del servidor no tenga errores de PHP. |
 | Producción | `monitoreo.sh` | `/salud.php`, `/login.php` y `/home.php` contra los límites de tiempo acordados (1,500 y 3,000 ms) y el desfase de hora de la base de datos. |
 
 ## 4. Scripts para la generación del despliegue

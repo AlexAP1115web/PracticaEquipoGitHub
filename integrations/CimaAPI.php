@@ -103,6 +103,11 @@ if (!function_exists('cimaMejorResultado')) {
                 continue;
             }
 
+            // Por nombre, la palabra debe aparecer completa: "cita" no es "CITALOPRAM"
+            if (!$igual && !preg_match('/(^| )' . preg_quote($buscado, '/') . '( |$)/', $nombreNorm)) {
+                continue;
+            }
+
             $fichaSeccionada = false;
             foreach ($med['docs'] ?? [] as $doc) {
                 if ((int) ($doc['tipo'] ?? 0) === 1 && !empty($doc['secc'])) {
@@ -119,6 +124,9 @@ if (!function_exists('cimaMejorResultado')) {
             if (strpos($nombreNorm, $buscado) === 0) $puntaje += 3;
             if (!empty($med['comerc'])) $puntaje += 2;
             if (strpos($principio, '+') === false) $puntaje += 1;
+            // En consulta se recetan sobre todo formas orales; la ficha de una perfusión habla de uso hospitalario
+            if (preg_match('/\b(comprimidos?|capsulas?|jarabe|suspension oral|solucion oral|granulado|sobres?|gotas orales|tabletas?)\b/', $nombreNorm)) $puntaje += 2;
+            if (preg_match('/\b(perfusion|inyectable|intravenos[ao])\b/', $nombreNorm)) $puntaje -= 3;
 
             if ($puntaje > $mejorPuntaje) {
                 $mejorPuntaje = $puntaje;

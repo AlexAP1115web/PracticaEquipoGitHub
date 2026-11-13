@@ -13,6 +13,7 @@ date_default_timezone_set("America/Mexico_City");
 
 require_once __DIR__ . '/config/apis.php';
 require_once __DIR__ . '/config/zona_horaria.php';
+require_once __DIR__ . '/config/sesiones_bd.php';
 
 /* =====================================================
    LOGS
@@ -49,21 +50,21 @@ if (!defined('SESSION_TIMEOUT')) {
     define('SESSION_TIMEOUT', 7200);
 }
 
-// Sesiones en una carpeta del proyecto: en Railway /tmp no siempre se puede escribir,
-// la sesión no se guardaba y todos los formularios fallaban por CSRF
+// Las sesiones se guardan en MySQL (config/sesiones_bd.php) y se inician después de conectar.
+// sessions_data/ se conserva para las marcas del esquema y de los recordatorios
 $rutaSesiones = __DIR__ . '/sessions_data';
 
 if (!file_exists($rutaSesiones)) {
     @mkdir($rutaSesiones, 0755, true);
 }
 
-if (is_dir($rutaSesiones) && is_writable($rutaSesiones)) {
-    session_save_path($rutaSesiones);
-}
-
 ini_set('session.use_only_cookies', 1);
 ini_set('session.use_strict_mode', 1);
 ini_set('session.cookie_httponly', 1);
+// La sesión dura lo mismo que la inactividad permitida; 1 de cada 100 peticiones borra las vencidas
+ini_set('session.gc_maxlifetime', SESSION_TIMEOUT);
+ini_set('session.gc_probability', 1);
+ini_set('session.gc_divisor', 100);
 
 $secure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
 
@@ -71,21 +72,6 @@ if ($secure) {
     ini_set('session.cookie_secure', 1);
 }
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_name("MEDICORE_SESSION");
-
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path' => '/',
-        'domain' => '',
-        'secure' => $secure,
-        'httponly' => true,
-        // Lax y no Strict, con Strict se pierde oauth_state al regresar de Google
-        'samesite' => 'Lax'
-    ]);
-
-    session_start();
-}
 
 /* =====================================================
    HEADERS
@@ -130,6 +116,32 @@ try {
             <p>No fue posible conectar con el núcleo de datos de MediCore.</p>
         </div>
     ");
+}
+
+/* =====================================================
+   INICIO DE LA SESIÓN (guardada en MySQL)
+===================================================== */
+
+if (session_status() === PHP_SESSION_NONE) {
+    // Conexión aparte: la sesión se guarda al final de cada página, cuando la página puede
+    // tener todavía resultados abiertos en $conexion
+    $conexionSesiones = new mysqli($host, $user, $pass, $db, (int) $puerto);
+    $conexionSesiones->set_charset("utf8mb4");
+    session_set_save_handler(new SesionesMySQL($conexionSesiones, SESSION_TIMEOUT), true);
+
+    session_name("MEDICORE_SESSION");
+
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'domain' => '',
+        'secure' => $secure,
+        'httponly' => true,
+        // Lax y no Strict, con Strict se pierde oauth_state al regresar de Google
+        'samesite' => 'Lax'
+    ]);
+
+    session_start();
 }
 
 /* =====================================================

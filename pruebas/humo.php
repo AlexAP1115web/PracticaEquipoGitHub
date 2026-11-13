@@ -164,6 +164,11 @@ revisar('Módulos', 'reporte_pdf.php genera un PDF', $pdf['codigo'] === 200 && s
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 $bd = new mysqli(getenv('DB_HOST'), getenv('DB_USER'), getenv('DB_PASS'), getenv('DB_NAME'), (int) getenv('DB_PORT'));
 
+// Sesiones en MySQL: si se guardaran en archivos, cada despliegue de Railway cerraría la sesión de todos
+$idSesion = $galletas['MEDICORE_SESSION'] ?? '';
+$enTabla = $idSesion !== '' && $bd->query("SELECT 1 FROM sesiones WHERE id = '" . $bd->real_escape_string($idSesion) . "' AND datos LIKE '%medico%'")->num_rows === 1;
+revisar('Sesión', 'La sesión del médico se guarda en la base de datos', $enTabla, null, $idSesion !== '' ? '' : 'sin cookie de sesión');
+
 foreach (['chatbot_consultas', 'push_suscripciones', 'push_mensajes', 'push_recordatorios', 'notas_consulta', 'mapa_registros', 'mapa_molestias', 'preconsultas', 'traslados'] as $tabla) {
     $existe = $bd->query("SHOW TABLES LIKE '$tabla'")->num_rows === 1;
     revisar('Esquema', "Tabla $tabla", $existe);

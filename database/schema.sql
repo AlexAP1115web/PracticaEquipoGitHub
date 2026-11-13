@@ -146,3 +146,12 @@ INSERT INTO enfermedades (nombre, categoria, descripcion, recomendaciones) VALUE
 
 INSERT INTO sucursales (nombre, direccion, lat, lng, telefono) VALUES
 ('MediCore Puebla Centro', 'Universidad Tecnológica de Puebla, Puebla, Pue.', 19.111, -98.174, '222-000-0000');
+
+-- Sesiones de los médicos (config/sesiones_bd.php). Se guardan en la base de datos para que
+-- un despliegue nuevo en Railway no cierre la sesión de todos. config.php la crea si falta.
+CREATE TABLE IF NOT EXISTS sesiones (
+    id VARCHAR(128) NOT NULL PRIMARY KEY,
+    datos MEDIUMBLOB NOT NULL,
+    actualizado INT UNSIGNED NOT NULL,
+    INDEX idx_sesiones_actualizado (actualizado)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

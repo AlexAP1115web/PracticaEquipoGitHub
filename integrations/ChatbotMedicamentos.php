@@ -130,7 +130,10 @@ if (!function_exists('candidatosMedicamento')) {
             // Síntomas: son la molestia, no el medicamento
             'duele', 'duelen', 'dolor', 'dolores', 'cabeza', 'fiebre', 'gripa', 'gripe', 'resfriado', 'garganta', 'estomago',
             'panza', 'diarrea', 'nausea', 'nauseas', 'vomito', 'vomitos', 'mareo', 'mareos', 'cansancio', 'sintoma', 'sintomas',
-            'tengo', 'siento', 'enfermo', 'enferma', 'recomiendo', 'recomendar'
+            'tengo', 'siento', 'enfermo', 'enferma', 'recomiendo', 'recomendar',
+            // Palabras del uso de MediCore, no son medicamentos ("cita" encontraba CITALOPRAM)
+            'cita', 'citas', 'agenda', 'agendo', 'agendar', 'agende', 'consulta', 'consultas', 'expediente', 'expedientes',
+            'horario', 'turno', 'registro', 'registrar', 'sistema', 'aplicacion', 'pagina', 'usuario', 'contrasena', 'correo'
         ];
 
         foreach (temasChatbot() as $tema) {
