@@ -266,6 +266,24 @@ if (!function_exists('respuestaSinMedicamentoChatbot')) {
     }
 }
 
+if (!function_exists('buscarMedicamentoExtraido')) {
+    // "amoxicilina, ácido clavulánico": primero la combinación y luego cada principio activo
+    function buscarMedicamentoExtraido($texto)
+    {
+        $principios = array_values(array_filter(preg_split('/\s*(?:,|\+|\/|\by\b)\s*/u', (string) $texto)));
+        $medicamento = cimaBuscarCombinacion($principios);
+
+        foreach ($medicamento ? [] : $principios as $principio) {
+            $medicamento = cimaBuscarMedicamento($principio);
+            if ($medicamento) {
+                break;
+            }
+        }
+
+        return $medicamento;
+    }
+}
+
 if (!function_exists('responderConsultaMedicamento')) {
     function responderConsultaMedicamento($conexion, $medicoId, $pregunta, $pacienteId = null)
     {
@@ -294,6 +312,9 @@ if (!function_exists('responderConsultaMedicamento')) {
             ];
         }
 
+        // Pregunta sobre niños: se prefieren presentaciones líquidas o en sobres (la dosis va por peso)
+        cimaPreferencias(['pediatrico' => (bool) preg_match('/\b(nino|nina|ninos|ninas|bebe|bebes|pediatric[oa]s?|infantil|infantes?|lactantes?)\b/', normalizarTextoClinico($pregunta))]);
+
         $temas = temasChatbot();
         $tema = detectarTemaChatbot($pregunta, $temaExplicito);
         $medicamento = null;
@@ -312,12 +333,7 @@ if (!function_exists('responderConsultaMedicamento')) {
         }
 
         if ($extraido && $extraido['medicamento'] !== '') {
-            foreach (preg_split('/\s*(?:,|\+|\/|\by\b)\s*/u', $extraido['medicamento']) as $principio) {
-                $medicamento = cimaBuscarMedicamento($principio);
-                if ($medicamento) {
-                    break;
-                }
-            }
+            $medicamento = buscarMedicamentoExtraido($extraido['medicamento']);
         }
 
         if (!$medicamento) {
@@ -334,12 +350,7 @@ if (!function_exists('responderConsultaMedicamento')) {
             $extraido = identificarConGemini($pregunta);
 
             if ($extraido && $extraido['medicamento'] !== '') {
-                foreach (preg_split('/\s*(?:,|\+|\/|\by\b)\s*/u', $extraido['medicamento']) as $principio) {
-                    $medicamento = cimaBuscarMedicamento($principio);
-                    if ($medicamento) {
-                        break;
-                    }
-                }
+                $medicamento = buscarMedicamentoExtraido($extraido['medicamento']);
                 $usoIA = true;
 
                 if ($extraido['tema']) {

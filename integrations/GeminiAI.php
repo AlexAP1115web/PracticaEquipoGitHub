@@ -57,9 +57,17 @@ if (!function_exists('geminiLlamar')) {
             CURLOPT_POSTFIELDS     => json_encode($cuerpo, JSON_UNESCAPED_UNICODE)
         ]);
 
-        $respuesta = curl_exec($ch);
-        $codigo = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $errorCurl = curl_error($ch);
+        // Un reintento si Gemini está saturado (429) o falla un momento (500, 503 o sin respuesta)
+        for ($intento = 1; $intento <= 2; $intento++) {
+            $respuesta = curl_exec($ch);
+            $codigo = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $errorCurl = curl_error($ch);
+
+            if (!in_array($codigo, [0, 429, 500, 503], true) || $intento === 2) {
+                break;
+            }
+            usleep(1500000);
+        }
         curl_close($ch);
 
         // Si el modelo configurado ya no existe, se intenta una vez con otro

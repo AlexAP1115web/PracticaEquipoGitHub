@@ -128,6 +128,23 @@ if (!function_exists('cimaMejorResultado')) {
             if (preg_match('/\b(comprimidos?|capsulas?|jarabe|suspension oral|solucion oral|granulado|sobres?|gotas orales|tabletas?)\b/', $nombreNorm)) $puntaje += 2;
             if (preg_match('/\b(perfusion|inyectable|intravenos[ao])\b/', $nombreNorm)) $puntaje -= 3;
 
+            $preferencias = cimaPreferencias();
+            $normalizar = function ($t) {
+                return function_exists('normalizarTextoClinico') ? normalizarTextoClinico($t) : mb_strtolower(trim((string) $t));
+            };
+            $liquida = preg_match('/\b(jarabe|suspension|solucion oral|gotas|granulado|sobres?)\b/', $nombreNorm);
+
+            // Para niños, las presentaciones líquidas o en sobres (la dosis va por peso)
+            if (!empty($preferencias['pediatrico']) && $liquida) $puntaje += 4;
+
+            // La forma y la concentración que se leyeron en la caja
+            $forma = $normalizar($preferencias['forma'] ?? '');
+            if ($forma !== '' && preg_match('/jarabe|suspension|gotas|solucion/', $forma) && $liquida) $puntaje += 3;
+            if ($forma !== '' && preg_match('/tableta|comprimido|capsula|gragea/', $forma) && preg_match('/\b(comprimid\w*|capsul\w*|tableta\w*|grageas?)\b/', $nombreNorm)) $puntaje += 2;
+
+            $concentracion = $normalizar($preferencias['concentracion'] ?? '');
+            if ($concentracion !== '' && preg_match('/(^| )' . preg_quote($concentracion, '/') . '( |$)/', $nombreNorm)) $puntaje += 3;
+
             if ($puntaje > $mejorPuntaje) {
                 $mejorPuntaje = $puntaje;
                 $mejor = $med;
@@ -146,6 +163,33 @@ if (!function_exists('cimaMejorResultado')) {
             'enlace'        => 'https://cima.aemps.es/cima/publico/detalle.html?nregistro=' . rawurlencode($mejor['nregistro']),
             'por_principio' => false
         ];
+    }
+}
+
+if (!function_exists('cimaPreferencias')) {
+    // Lo que se sabe de la pregunta o de la foto para elegir la presentación adecuada:
+    // ['pediatrico' => true] o ['concentracion' => '500 mg', 'forma' => 'jarabe']
+    function cimaPreferencias($nuevas = null)
+    {
+        static $preferencias = [];
+        if ($nuevas !== null) {
+            $preferencias = $nuevas;
+        }
+        return $preferencias;
+    }
+}
+
+if (!function_exists('cimaBuscarCombinacion')) {
+    // "amoxicilina" + "ácido clavulánico": se busca la combinación, no cada uno por separado
+    function cimaBuscarCombinacion(array $principios)
+    {
+        $principios = array_values(array_filter(array_map('trim', $principios)));
+
+        if (count($principios) < 2) {
+            return null;
+        }
+
+        return cimaMejorResultado(['practiv1' => $principios[0], 'practiv2' => $principios[1]], $principios[0] . ' ' . $principios[1]);
     }
 }
 

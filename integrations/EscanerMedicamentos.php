@@ -111,9 +111,12 @@ if (!function_exists('escanearMedicamento')) {
         $primeroEnCima = null;
 
         foreach ($lectura['medicamentos'] as $m) {
-            $cima = null;
+            // Se prefiere la presentación que se ve en la foto (500 mg, jarabe, tabletas...)
+            cimaPreferencias(['concentracion' => $m['concentracion'], 'forma' => $m['forma']]);
 
-            foreach ($m['principios'] as $principio) {
+            $cima = cimaBuscarCombinacion($m['principios']);
+
+            foreach ($cima ? [] : $m['principios'] as $principio) {
                 $cima = cimaBuscarMedicamento($principio);
                 if ($cima) {
                     break;
@@ -123,6 +126,8 @@ if (!function_exists('escanearMedicamento')) {
             if (!$cima && $m['nombre_detectado'] !== '') {
                 $cima = cimaBuscarMedicamento($m['nombre_detectado'], false);
             }
+
+            cimaPreferencias([]);
 
             // Alergias con todo lo leído aunque no esté en CIMA
             $textoRevision = trim(
